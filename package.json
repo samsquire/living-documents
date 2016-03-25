@@ -1,0 +1,28 @@
+{
+  "name": "living-documents",
+  "version": "0.0.1",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "cp *.html build; webpack",
+    "watch": "webpack-dev-server --progress --colors"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samsquire/living-documents.git"
+  },
+  "author": "Sam Squire",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/samsquire/living-documents/issues"
+  },
+  "homepage": "https://github.com/samsquire/living-documents#readme",
+  "devDependencies": {
+    "css-loader": "^0.23.1",
+    "file-loader": "^0.8.5",
+    "style-loader": "^0.13.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.12.14"
+  }
+}

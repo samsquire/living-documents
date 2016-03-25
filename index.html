@@ -1,0 +1,61 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Living Documents</title>
+    <meta name="author" content="SitePoint">
+
+    <link rel="stylesheet" href="styles.css">
+
+
+</head>
+
+<body>
+
+    <div class="ui container">
+        <h1 class="ui header">Open challenge feed</h1>
+        <p>These are available information challenges for you.</p>
+        <p>The more questions you answer, the more challenges will become available.</p>
+
+            <input data-bind="value: newQuestionText">
+            <button data-bind="click: newRecord">add challenge</button>
+        <div class="ui grid">
+          <div class="row">
+            <div class="ten wide column">
+              <div class="ui divided grid">
+                <!-- ko foreach: {data: records, as: 'challenge'} -->
+                      <div class="row">
+                          <div class="seven wide column">
+                             <span data-bind="text: $root.source"></span><span data-bind="text: challenge.path"></span>
+                          </div>
+
+                          <div class="seven wide column">
+                              <ul data-bind="foreach: {data: questions, as: 'question'}">
+                                  <li>
+                                      <span data-bind="text: question"></span>
+                                      <input data-bind="value: answer, event: {blur: function () { $root.updateQuestion(challenge)}}">
+                                  </li>
+                              </ul>
+                          </div>
+                      </div>
+              <!-- /ko -->
+            </div>
+          </div>
+
+          <div class="four wide column">
+            Hello
+          </div>
+        </div>
+
+  </div>
+
+</div>
+            <div id="editor"></div>
+
+    <script src="bundle.js"></script>
+</body>
+
+</html>
