@@ -1,0 +1,11 @@
+var facts = require('../facts');
+{%- for dependency in dependencies %}
+var {{ dependency.name }} = facts.get('{{dependency.id}}', '{{dependency.description}}'); 
+{%- endfor %}
+
+function run(data) {
+  console.log("received", data);
+  return 0;
+}
+
+module.exports = run;

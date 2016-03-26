@@ -1,9 +1,15 @@
 var ko = require('./vendor/knockout-3.4.0.js');
-var $ = require('./vendor/jquery-1.12.2.min.js');
+// var $ = require('./vendor/jquery-2.2.2.min.js');
 
 function Question(data) {
   this.question = data.question;
-  this.answer = data.answer;
+  this.answer = ko.observable(data.answer);
+}
+
+function Requirement(id, question) {
+  var self = this;
+  self.id = id;
+  self.question = question;
 }
 
 function Challenge(data) {
@@ -12,15 +18,75 @@ function Challenge(data) {
   this.questions = ko.observableArray();
   this.path = data.path;
 
-  data.questions.map(function (question) { return new Question(question)  }).forEach(function (question) { self.questions.push(question); });
+  data.questions.map(function (question) { return new Question(question)  }).forEach(function (question) { self.questions.push(ko.observable(question)); });
 
+}
+
+function Fact(data) {
+  this.description = ko.observable(data.description);
+  this.value = ko.observable(data.value);
+  this.dependencies = ko.observableArray(data.dependencies);
 }
 
 function appViewModel() {
   var self = this;
+  self.mode = ko.observable("browse");
   self.records = ko.observableArray();
   self.newQuestionText = ko.observable("");
   self.source = "http://localhost:5000";
+  self.language = ko.observable("javascript");
+  self.inputs = ko.observableArray();
+  self.code = ko.observable("");
+  self.response = ko.observable("");
+  self.dirty = ko.observable(false);
+
+  self.facts = ko.observableArray();
+
+  self.markDirty = function () {
+    self.dirty(true);
+  }
+
+  self.language.subscribe(function (newLanguage) {
+    console.log("language changes to", newLanguage);
+    if (self.dirty()) { return; }
+    self.fetchLanguageCode(newLanguage);
+  }); 
+
+  self.switchTab = function (context, event) {
+    var newMode = $(event.target).attr('data-mode');
+    console.log("switching to", newMode);
+    self.mode(newMode);
+  };
+
+  self.activeIfMode = function (element) {
+    var newMode = $(element).attr('data-mode');
+    return self.mode() === newMode;
+  };
+
+  self.fetchLanguageCode = function (newLanguage) {
+    if (self.dirty()) { return; }
+    
+    $.ajax(
+      {
+        type: "POST",
+        data: ko.toJSON(self.inputs),
+        url: self.source + "/usages/" + newLanguage,
+        contentType: 'application/json; charset=utf-8',
+        dataType: "json",
+        success: function (data) {
+          console.log(data)
+          self.code(data.code);
+          self.dirty(false);
+        }
+    });
+  };
+
+  self.fetchLanguageCode(self.language());
+
+  self.switchLanguage = function (language, event) {
+    var language = $(event.target).attr('data-language');
+    self.language(language);
+  };
 
 
   $.get(self.source + "/challenges", function (data) {
@@ -31,8 +97,31 @@ function appViewModel() {
     .forEach(function (item) {
       self.records.push(item);
     }); 
-
   }); 
+
+
+  self.updateFacts = function () {
+      $.get(self.source + "/facts", function (data) {
+       data
+        .map(function (item) {
+        return new Fact(item);
+       })
+        .forEach(function (item) {
+          self.facts.push(item);
+        }); 
+      }); 
+  };
+
+  self.updateFacts();
+
+  this.useQuestion = function (challenge, index) {
+    var id = challenge.id;
+    console.log(index, challenge);
+    var question = challenge.questions()[index];
+    console.log(question);
+    self.inputs.push(new Requirement(id, question));
+    self.fetchLanguageCode(self.language());
+  };
 
   this.addRecord = function (item) {
     var requestData = ko.toJSON(item);
@@ -45,10 +134,31 @@ function appViewModel() {
         data: requestData,
         success: function (response) {
           console.log();
-          self.records.push(new Challenge(response));
+          self.records.unshift(new Challenge(response));
         }
     });
+  return false;
+  };
 
+  this.newCode = function () {
+    var requestData = {
+      code: self.code(),
+      dependencies: ko.toJS(self.inputs())
+    };
+    $.ajax(
+    {
+        url: self.source + "/code",
+        contentType: 'application/json; charset=utf-7',
+        type: "POST",
+        dataType: "json",
+        data: JSON.stringify(requestData),
+        success: function (response) {
+          var output = response.output;
+          self.response(output);
+          self.updateFacts();
+        }
+    });
+    return false; 
   };
 
   // this.addRecord({
@@ -72,8 +182,8 @@ function appViewModel() {
     $.ajax(
     {
         url: self.source + "/challenges/" + row.id,
-        contentType: 'application/json; charset=utf-8',
         type: "POST",
+        contentType: 'application/json; charset=utf-8',
         dataType: "json",
         data: ko.toJSON(row),
         success: function (response) {

@@ -16,44 +16,193 @@
 <body>
 
     <div class="ui container">
-        <h1 class="ui header">Open challenge feed</h1>
+      <div class="ui menu">
+        <a class="item">Browse</a>
+        <a class="item">Submit</a>
+        <div class="right menu">
+          <div class="ui category search item">
+          <div class="ui transparent icon input">
+            <input class="prompt" placeholder="Search content" type="text">
+            <i class="search link icon"></i>
+          </div>
+          <div class="results"></div>
+        </div> 
+          <a class="item">Sign Up</a>
+        </div>
+      </div>
+
+
+        <h1 class="ui header huge">Open challenge feed</h1>
         <p>These are available information challenges for you.</p>
         <p>The more questions you answer, the more challenges will become available.</p>
 
-            <input data-bind="value: newQuestionText">
-            <button data-bind="click: newRecord">add challenge</button>
-        <div class="ui grid">
-          <div class="row">
-            <div class="ten wide column">
-              <div class="ui divided grid">
-                <!-- ko foreach: {data: records, as: 'challenge'} -->
-                      <div class="row">
-                          <div class="seven wide column">
-                             <span data-bind="text: $root.source"></span><span data-bind="text: challenge.path"></span>
-                          </div>
+    <div class="ui grid">
+      <div class="row">
+      <div class="eight wide column">
+      <div class="ui top attached tabular menu">
+        <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="insert" class="item">Insert fact</div>
+        <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="browse" class="item">Facts</div>
+      </div>
+      <div class="ui attached active tab segment">
 
-                          <div class="seven wide column">
-                              <ul data-bind="foreach: {data: questions, as: 'question'}">
-                                  <li>
-                                      <span data-bind="text: question"></span>
-                                      <input data-bind="value: answer, event: {blur: function () { $root.updateQuestion(challenge)}}">
-                                  </li>
-                              </ul>
-                          </div>
-                      </div>
-              <!-- /ko -->
-            </div>
-          </div>
-
-          <div class="four wide column">
-            Hello
-          </div>
-        </div>
-
-  </div>
-
+              <form class="ui form" data-bind="submit: newRecord">
+                <div class="field">
+                  <label>Question text</label>
+                  <input  data-bind="value: newQuestionText" name="question" placeholder="question text" type="text">
+                </div>
+                <button class="ui button" type="submit">Submit</button>
+              </form>
+        
+      </div> <!-- insert segment -->
+      <div data-bind="css: {active: mode() == 'browse'}" class="ui bottom attached tab segment">
+         <div 
+  class="ui feed"> 
+          <!-- ko foreach: {data: facts, as: 'fact'} -->
+           <div class="event">
+              <div class="label">
+              </div>
+              <div class="content">
+                <div class="summary">
+                  <a>Fact</a> created
+                  <div class="date">
+                    3 days ago
+                  </div>
+                </div>
+                <div class="extra text">
+                  <div class="ui list">
+                   <!-- ko foreach: {data: dependencies, as: 'dependency'} -->
+            <a class="item">
+              <i class="right triangle icon"></i>
+              <div class="content">
+                <div class="header">
+                  <span data-bind="text: question"></span>
 </div>
-            <div id="editor"></div>
+                <div class="description">
+                  <span data-bind="text: answer"></span>
+                </div>
+              </div>
+            </a>
+            <!-- /ko --> <!-- dependency list -->
+            <div class="item">
+              <i class="exchange icon"></i>
+              <div class="content">
+              <div class="header" data-bind="text: description"></div>
+                  <span data-bind="text: value"></span>
+              </div> <!-- answer content -->
+            </div>
+
+
+                  </div> <!-- end of item list -->
+                </div>
+                <div class="meta">
+                  <a class="like">
+                    <i class="like icon"></i> 5 Likes
+                  </a>
+                </div>
+              </div>
+            </div> <!-- fact event -->
+        <!-- /ko -->
+
+
+
+
+        </div> <!-- fact feed !-->
+
+      </div> <!-- browse tab -->
+
+       <div data-bind="css: {active: mode() == 'insert'}"
+class="ui bottom attached tab segment" style="margin: 0px;"> 
+        <div class="ui feed">
+      <!-- ko foreach: {data: records, as: 'challenge'} -->
+
+           <div class="event">
+              <div class="label"></div>
+              <div class="content">
+                <div class="summary">
+                  <a class="user">
+                    <!-- <span data-bind="text: challenge.path"></span> -->
+                    Question bot
+                  </a> asks you
+                  <div class="date">
+                    1 Hour Ago
+                  </div>
+                </div>
+
+                <div class="extra text">
+                  <div class="ui form">
+                    <div class="fields">
+                                        <!-- ko foreach: {data: questions, as: 'item'} -->
+                      <div class="field">
+                        <label data-bind="text: question"></label>
+                        <input placeholder="answer" type="text" data-bind="value: answer, event: {blur: function () { $root.updateQuestion(challenge)}}">
+                  <a class="add right" data-bind="click: function () {
+$root.useQuestion(challenge, $index());}">
+                    <i class="add circle icon"></i> Require...
+                  </a>
+
+                      </div>
+                      
+                    <!-- /ko -->
+                    </div> <!-- fields -->
+                  </div> <!-- form -->
+                                                <span ></span>
+                </div>
+
+
+                <div class="meta">
+                  <a class="like">
+                    <i class="like icon"></i> 4 Likes
+                  </a>
+                </div>
+              </div>
+            </div> <!-- event -->
+              <!-- /ko -->
+
+      </div>
+    </div> <!-- feed -->
+    </div> <!-- feed column -->
+  
+
+    <div class="eight wide column">
+      <div class="ui top attached tabular menu">
+        <div class="active item">Use fact</div>
+      </div>
+      <div class="ui bottom attached active tab segment">
+
+<div class="field">
+<button class="ui button" data-language="python" data-bind="css: {active: language() == 'python'}, click: switchLanguage">Python</button>
+<button class="ui button" data-language="ruby" data-bind="css : {active: language() == 'ruby'}, click: switchLanguage">Ruby</button>
+<button class="ui button" data-language="javascript" data-bind="css: {active: language() == 'javascript'}, click: $root.switchLanguage">Javascript</button>
+                </div>
+              <form class="ui form" data-bind="submit: newCode">
+
+                <!-- ko foreach: {data: inputs, as: 'item'} -->
+                  <!-- ko with: item.question -->
+                <p><a data-bind="text: question"></a>
+                <span data-bind="text: answer"></span></p>
+                  <!-- /ko -->
+                <!-- /ko -->
+
+                <div class="field">
+                  <label>Code</label>
+                  <textarea data-bind="value: code, event: {change: markDirty}"></textarea>
+                </div>
+                <button class="ui button" type="submit">Submit</button>
+              </form>
+
+              
+        
+      </div> <!-- code segment -->
+      <div class="ui segment bottom attached">
+      <pre data-bind="text: response"></pre>
+      </div>
+    </div>
+
+    </div> <!-- row -->
+  </div> <!-- grid -->
+  </div> <!-- container- !-->
+
+            <!-- <div id="editor"></div> -->
 
     <script src="bundle.js"></script>
 </body>
