@@ -41,7 +41,6 @@ function appViewModel() {
   self.dirty = ko.observable(false);
 
   self.facts = ko.observableArray();
-
   self.markDirty = function () {
     self.dirty(true);
   }
@@ -56,6 +55,7 @@ function appViewModel() {
     var newMode = $(event.target).attr('data-mode');
     console.log("switching to", newMode);
     self.mode(newMode);
+    self.tabUpdates[newMode]();
   };
 
   self.activeIfMode = function (element) {
@@ -89,18 +89,23 @@ function appViewModel() {
   };
 
 
-  $.get(self.source + "/challenges", function (data) {
-   data
-    .map(function (item) {
-    return new Challenge(item);
-   })
-    .forEach(function (item) {
-      self.records.push(item);
+  self.updateChallenges = function () {
+    self.records.removeAll();
+    $.get(self.source + "/challenges", function (data) {
+     data
+      .map(function (item) {
+      return new Challenge(item);
+     })
+      .forEach(function (item) {
+        self.records.push(item);
+      }); 
     }); 
-  }); 
+  };
+
 
 
   self.updateFacts = function () {
+      self.facts.removeAll();
       $.get(self.source + "/facts", function (data) {
        data
         .map(function (item) {
@@ -112,7 +117,13 @@ function appViewModel() {
       }); 
   };
 
+  self.tabUpdates = {
+    browse: self.updateFacts.bind(self),
+    insert: self.updateChallenges.bind(self),
+  };
+
   self.updateFacts();
+  self.updateChallenges();
 
   this.useQuestion = function (challenge, index) {
     var id = challenge.id;
@@ -140,6 +151,12 @@ function appViewModel() {
   return false;
   };
 
+  this.reset = function () {
+    self.dirty(false); 
+    self.inputs.removeAll();
+    self.fetchLanguageCode(self.language());
+  };
+
   this.newCode = function () {
     var requestData = {
       code: self.code(),
@@ -155,7 +172,7 @@ function appViewModel() {
         success: function (response) {
           var output = response.output;
           self.response(output);
-          self.updateFacts();
+          setTimeout(function () { self.updateFacts() }, 400);
         }
     });
     return false; 

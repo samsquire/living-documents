@@ -1,6 +1,7 @@
 #!/bin/bash
 
 rm -rf db
+rm jobs/*
 
 curl -X POST http://localhost:5000/challenges --data-ascii '{"questions": [{"question": "What did you spend today?", "answer": ""}]}' -H "Content-Type: application/json"
 

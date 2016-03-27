@@ -15,18 +15,46 @@ def open_db():
 open_db().close()
 
 def save(path, thing, data):
-  db = open_db() 
+  db = open_db()
   countKey = b'count' + '-' + thing
   count = db.get(countKey) or str(1)
-  data = data
   identifier = thing + '-' + count
 
   data["id"] = str(identifier)
   data["path"] = "/" + thing + 's/' + str(identifier)
   db.put(identifier, json.dumps(data))
+  print("Just saved " + thing + " as " + str(identifier))
   db.put(countKey, str(int(count) + 1))
   db.close()
   return data
+
+def update_thing(thingType, identifier, data):
+  db = open_db()
+  response = {"status": "not updated"}
+  if db.get(identifier) is not None:
+    print("Just updated  " + thingType  + identifier)
+    db.put(identifier, json.dumps(request.get_json()))
+    response = {"status": "updated"}
+  db.close()
+  return response
+
+  
+def query(prefix):
+  db = open_db()
+  def generate():
+    yield "["
+    started = False
+    query = db.iterator(prefix=prefix)
+    for key, value in query:
+      if started:
+        yield ","
+      data = json.loads(value)
+      yield json.dumps(data)
+      started = True
+    query.close()
+    db.close()
+    yield "]"
+  return generate
 
 @app.route("/challenges", methods=["POST"])
 def save_challenge():
@@ -48,34 +76,12 @@ def get_challenge(challengeId):
     answer = data 
     return json.dumps(answer) 
   return Response(status=404)
-   
-@app.route("/challenges/<id>", methods=["POST"])
-def update_challenge(id):
-  db = open_db()
-  identifier = str(id)
-  response = {"status": "not updated"}
-  if db.get(identifier) is not None:
-    db.put(identifier, json.dumps(request.get_json()))
-    response = {"status": "updated"}
-  db.close()
-  return json.dumps(response) 
 
-def query(prefix):
-  db = open_db()
-  def generate():
-    yield "["
-    started = False
-    query = db.iterator(prefix=prefix)
-    for key, value in query:
-      if started:
-        yield ","
-      data = json.loads(value)
-      yield json.dumps(data)
-      started = True
-    query.close()
-    db.close()
-    yield "]"
-  return generate
+   
+@app.route("/challenges/<challengeId>", methods=["POST"])
+def update_challenge(challengeId):
+  return json.dumps(update_thing('challenge', bytes(challengeId), request.get_json())) 
+
 
 @app.route("/challenges")
 def challenges():
@@ -88,11 +94,12 @@ def newCode():
   code = submission["code"]  
   job = save("/jobs/job-", b"job", {})
   identifier = job["id"]
-  file = open("jobs/" + identifier + ".js", "w")
-  file.write(code)
-  output = check_output(["node", "fact-executor.js", identifier], stderr=subprocess.STDOUT)  
+  with open("jobs/" + identifier + ".js", "w") as file:
+    file.write(code)
+  process = subprocess.Popen(["node", "fact-executor.js", identifier])
+  
   return Response(json.dumps({
-    "output": output
+    "output": "executed",
   }), content_type="application/json")
 
 @app.route("/facts", methods=["GET"])
@@ -122,4 +129,4 @@ def usages(language):
     return ""
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, threaded=True)

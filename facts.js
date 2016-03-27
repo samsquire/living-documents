@@ -5,8 +5,14 @@ var http = require('http');
 var fs = require('fs');
 
 var data = {};
+var desires = [];
 
 function get(id, name) {
+  if (!name) {
+    var desire = id;
+    desires.push(desire);
+    return desire;
+  }
   data[id] = name;
   return name;
 }
@@ -23,7 +29,7 @@ function toDependencies(data) {
 
 function run(job) {
   var app = require(job);
-
+  console.log(app);
   console.log(data);
   
   var gets = _.map(data, function (value, key) {
@@ -37,11 +43,12 @@ function run(job) {
       }
       
       var db = levelup('./db');
-      console.log("fetching", key); 
       db.get(key, function (err, value) {
-        var challenge = JSON.parse(value);
-        var question = challenge.questions[0];
-        data[question.question] = question.answer;
+        if (value !== undefined) {
+          var challenge = JSON.parse(value);
+          var question = challenge.questions[0];
+          data[question.question] = question.answer;
+        }
         db.close();
         callback(err, data);
       });
@@ -51,7 +58,12 @@ function run(job) {
 
 
   async.waterfall(gets.concat([
-    function (answers, callback) {
+    function (answers, nextCallback) {
+      var callback = nextCallback;
+      if (!nextCallback) {
+        callback = answers; 
+        answers = {};
+      }
       console.log("all data retrieved", answers);
       var result = app(answers);
 
