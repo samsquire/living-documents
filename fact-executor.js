@@ -5,4 +5,4 @@ console.log(jobName);
 
 var path = './jobs/' + jobName + '.js';
 console.log(path);
-facts.run(path);
+facts.run(path, jobName);

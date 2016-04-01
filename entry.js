@@ -11,6 +11,24 @@ function(ko, appViewModel, _JSONEditor) {
     $(document).ready(function () {
       ko.applyBindings(new appViewModel());
       console.log(JSONEditor);
+
+    $('.ui.search')
+        .search({
+//          source: [{title: "i like"}],
+          apiSettings: {
+            url:
+            'http://localhost:5000/search/?query={query}'
+          },
+          searchFields   : [
+            'title'
+          ],
+          searchFullText: false
+        })
+      ;
+
+
+
+
       
       /*
       new JSONEditor(document.getElementById('editor'), {

@@ -14,17 +14,21 @@ def open_db():
 
 open_db().close()
 
-def save(path, thing, data):
+def save(path, thing, data, count=True):
   db = open_db()
-  countKey = b'count' + '-' + thing
-  count = db.get(countKey) or str(1)
-  identifier = thing + '-' + count
+  identifier = thing
+  if count:
+    countKey = b'counts-' + path
+    count = db.get(countKey) or str(1)
+    identifier = thing + '-' + count
 
   data["id"] = str(identifier)
-  data["path"] = "/" + thing + 's/' + str(identifier)
+  if count:
+    data["path"] = "/" + thing + 's/' + str(identifier)
   db.put(identifier, json.dumps(data))
-  print("Just saved " + thing + " as " + str(identifier))
-  db.put(countKey, str(int(count) + 1))
+  print("Just saved " + thing + " as " + json.dumps(data))
+  if count:
+    db.put(countKey, str(int(count) + 1))
   db.close()
   return data
 
@@ -32,7 +36,7 @@ def update_thing(thingType, identifier, data):
   db = open_db()
   response = {"status": "not updated"}
   if db.get(identifier) is not None:
-    print("Just updated  " + thingType  + identifier)
+    print("Just updated  " + thingType + " as " + identifier)
     db.put(identifier, json.dumps(request.get_json()))
     response = {"status": "updated"}
   db.close()
@@ -56,9 +60,37 @@ def query(prefix):
     yield "]"
   return generate
 
+def update_questions(questions):
+  db = open_db()
+  for question in questions:
+    identifier = str(question["question"])
+    questionData = db.get(identifier)
+
+    if questionData:
+      data = json.loads(questionData)
+    else:
+      data = {} 
+    data.update(question)
+    db.close()
+    save("/questions/question-", identifier, data, count=False)
+  db.close()
+
+@app.route("/search/", methods=["GET"])
+def search():
+  return json.dumps({
+    "results": [ 
+      {"title": "I like"},
+      {"title": "I like"},
+  ]})  
+
 @app.route("/challenges", methods=["POST"])
 def save_challenge():
-  newChallenge = save("/challenges/challenge-", b"challenge", request.get_json())
+  challenge = request.get_json()
+  job = challenge.get("job")
+  newChallenge = save("/challenges/challenge-", b"challenge", challenge)
+  update_questions(newChallenge["questions"])
+  if job:
+    add_job_to_questions(job, newChallenge["questions"])
   return Response(json.dumps(newChallenge), content_type="application/json")
 
 @app.route("/facts", methods=["POST"])
@@ -80,23 +112,63 @@ def get_challenge(challengeId):
    
 @app.route("/challenges/<challengeId>", methods=["POST"])
 def update_challenge(challengeId):
-  return json.dumps(update_thing('challenge', bytes(challengeId), request.get_json())) 
+  challenge = request.get_json()
+  update_questions(challenge["questions"])
+  response = json.dumps(update_thing('challenge', bytes(challengeId), challenge))
+  for question in challenge["questions"]: 
+    print("looking at updated question")
+    questionText = str(question["question"])
+    print(questionText)
+    db = open_db()
+    rawQuestion = db.get(questionText)
+    db.close()
+    if rawQuestion:
+      questionData = json.loads(rawQuestion)    
+      print(questionData)
+      db = open_db()
+      jobs = questionData.get("jobs")
+      db.close()
+      if jobs: 
+        for job in jobs:
+          print(questionText + " has dependency on " + job)
+          run_job(job)
+  return response 
 
 
 @app.route("/challenges")
 def challenges():
   return Response(query(b'challenge-')(), mimetype="application/json")  
 
+def run_job(identifier):
+  process = subprocess.Popen(["node", "fact-executor.js", identifier])
+
+def add_job_to_questions(job, dependencies):
+  db = open_db()     
+  for dependency in dependencies:
+    text = dependency["question"]
+    print("encountered a dependency on question " + text)
+    question = db.get(str(text))
+    if question:
+      questionData = json.loads(question)  
+      questionData["jobs"] = questionData.get("jobs", [])
+      questionData["jobs"].append(job)
+      print(questionData)
+      db.put(str(text), json.dumps(questionData))
+  db.close()
+
 
 @app.route("/code", methods=["POST"])
 def newCode():
   submission = request.get_json()
   code = submission["code"]  
+  dependencies = submission["dependencies"]
   job = save("/jobs/job-", b"job", {})
   identifier = job["id"]
+  add_job_to_questions(identifier, map(lambda item: item["question"], dependencies))
   with open("jobs/" + identifier + ".js", "w") as file:
     file.write(code)
-  process = subprocess.Popen(["node", "fact-executor.js", identifier])
+
+  run_job(identifier)
   
   return Response(json.dumps({
     "output": "executed",

@@ -1,6 +1,6 @@
 var facts = require('../facts');
 {%- for dependency in dependencies %}
-var {{ dependency.name }} = facts.get('{{dependency.id}}', '{{dependency.description}}'); 
+var {{ dependency.name }} = facts.get('{{dependency.description}}'); 
 {%- endfor %}
 
 function run(data) {

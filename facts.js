@@ -7,14 +7,36 @@ var fs = require('fs');
 var data = {};
 var desires = [];
 
-function get(id, name) {
-  if (!name) {
-    var desire = id;
-    desires.push(desire);
-    return desire;
-  }
-  data[id] = name;
+function get(name) {
+  data[name] = {};
   return name;
+}
+
+function post(data, url, callback) {
+      var post_data = JSON.stringify(data);
+
+       var post_options = {
+            host: 'localhost',
+            port: '5000',
+            path: url,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': post_data.length
+            }
+        };
+
+        // Set up the request
+        var post_req = http.request(post_options, function (res) {
+            res.setEncoding('utf8');
+            res.on('data', function (data) {
+              callback(null, data);
+            });
+        });
+
+        // post the data
+        post_req.write(post_data);
+        post_req.end();
 }
 
 function toDependencies(data) {
@@ -27,7 +49,7 @@ function toDependencies(data) {
 
 }
 
-function run(job) {
+function run(job, jobName) {
   var app = require(job);
   console.log(app);
   console.log(data);
@@ -45,12 +67,29 @@ function run(job) {
       var db = levelup('./db');
       db.get(key, function (err, value) {
         if (value !== undefined) {
-          var challenge = JSON.parse(value);
-          var question = challenge.questions[0];
+          var question = JSON.parse(value);
           data[question.question] = question.answer;
+          db.close();
+          callback(err, data);
+        } else if (err){
+          // we have to create a challenge for this information! 
+          console.log("saving new challenge", key);
+          var newChallenge = {
+            questions: [
+              {
+                question: key,
+                answer: 0
+              }
+            ],
+            job: jobName
+          }
+          db.close();
+          post(newChallenge, 'challenges', function (response) {
+            callback("done");
+          });  
+        } else {
+          callback("error");
         }
-        db.close();
-        callback(err, data);
       });
     }
 
@@ -73,30 +112,7 @@ function run(job) {
         dependencies: toDependencies(answers) 
       }
       console.log("Saving", data);
-      var post_data = JSON.stringify(data);
-
-       var post_options = {
-            host: 'localhost',
-            port: '5000',
-            path: '/facts',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': post_data.length
-            }
-        };
-
-        // Set up the request
-        var post_req = http.request(post_options, function (res) {
-            res.setEncoding('utf8');
-            res.on('data', function (data) {
-              callback(null, data);
-            });
-        });
-
-        // post the data
-        post_req.write(post_data);
-        post_req.end();
+      post(data, '/facts', callback);
     },
 
       function (response, callback) {
