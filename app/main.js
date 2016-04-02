@@ -1,5 +1,4 @@
 var ko = require('./vendor/knockout-3.4.0.js');
-// var $ = require('./vendor/jquery-2.2.2.min.js');
 
 function Question(data) {
   this.question = data.question;
@@ -172,7 +171,9 @@ function appViewModel() {
         success: function (response) {
           var output = response.output;
           self.response(output);
-          setTimeout(function () { self.updateFacts() }, 400);
+          setTimeout(function () {
+            self.updateFacts()
+          }, 1500);
         }
     });
     return false; 

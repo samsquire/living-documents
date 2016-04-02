@@ -80,7 +80,7 @@ def search():
   return json.dumps({
     "results": [ 
       {"title": "I like"},
-      {"title": "I like"},
+      {"title": "I want"}
   ]})  
 
 @app.route("/challenges", methods=["POST"])

@@ -54,6 +54,7 @@ function run(job, jobName) {
   console.log(app);
   console.log(data);
   
+  var db = levelup('./db');
   var gets = _.map(data, function (value, key) {
 
     return function getAnswer(previous, answerCallback) {
@@ -64,12 +65,10 @@ function run(job, jobName) {
         data = {}
       }
       
-      var db = levelup('./db');
       db.get(key, function (err, value) {
         if (value !== undefined) {
           var question = JSON.parse(value);
           data[question.question] = question.answer;
-          db.close();
           callback(err, data);
         } else if (err){
           // we have to create a challenge for this information! 
@@ -85,6 +84,9 @@ function run(job, jobName) {
           }
           db.close();
           post(newChallenge, 'challenges', function (response) {
+
+            
+            db = levelup('./db');
             callback("done");
           });  
         } else {
@@ -112,6 +114,7 @@ function run(job, jobName) {
         dependencies: toDependencies(answers) 
       }
       console.log("Saving", data);
+      db.close();
       post(data, '/facts', callback);
     },
 
