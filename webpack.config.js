@@ -8,7 +8,7 @@ module.exports = {
     },
     module: {
         loaders: [
-      { test: /\electron.js$/, loader: 'ignore-loader'},
+      /*{ test: /\electron.js$/, loader: 'ignore-loader'}, */
       { test: /\.css$/, loader: "style!css" },
       { test: /\.png$/, loader: "url-loader?limit=100000" },
       { test: /\.jpg$/, loader: "file-loader" },
@@ -22,8 +22,8 @@ module.exports = {
                 jQuery: "jquery",
                 $: "jquery"
             })
-    , 
-        new webpack.IgnorePlugin(/electron\.js$/)
+    /*, 
+        new webpack.IgnorePlugin(/electron\.js$/)*/
 
     ]
 

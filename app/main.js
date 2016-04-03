@@ -4,6 +4,19 @@ function Question(data) {
   this.question = data.question;
   this.answer = ko.observable(data.answer);
 }
+function RepositoryKnowledgeBase(data) {
+  this.name = data.name;
+  this.author = data.author;
+  this.description = data.description;
+}
+
+function KnowledgeBase(data) {
+  this.name = data.name;
+  this.challenges = data.challenges;
+  this.completedChallenges = data.completedChallenges;
+  this.completedness = (this.completedChallenges / this.challenges) * 100
+  this.author = data.author;
+}
 
 function Requirement(id, question) {
   var self = this;
@@ -31,6 +44,10 @@ function appViewModel() {
   var self = this;
   self.mode = ko.observable("browse");
   self.records = ko.observableArray();
+
+  self.knowledgebase = ko.observableArray();
+  self.repository = ko.observableArray();
+
   self.newQuestionText = ko.observable("");
   self.source = "http://localhost:5000";
   self.language = ko.observable("javascript");
@@ -49,6 +66,25 @@ function appViewModel() {
     if (self.dirty()) { return; }
     self.fetchLanguageCode(newLanguage);
   }); 
+
+  self.fetchKnowledgebases = function () {
+    $.ajax(
+      {
+        type: "GET",
+        url: self.source + "/knowledge",
+        dataType: "json",
+        success: function (data) {
+          self.knowledgebase.removeAll();
+
+          data.items.map(function (item) {
+            return new KnowledgeBase(item);
+          }).forEach(function (item) {
+            self.knowledgebase.push(item);
+          });
+          self.updateFacts();
+        }
+    });
+  };
 
   self.switchTab = function (context, event) {
     var newMode = $(event.target).attr('data-mode');
@@ -76,6 +112,7 @@ function appViewModel() {
           console.log(data)
           self.code(data.code);
           self.dirty(false);
+          self.fetchKnowledgebases();
         }
     });
   };
@@ -99,11 +136,36 @@ function appViewModel() {
         self.records.push(item);
       }); 
     }); 
+
+    self.updateRepository();
   };
 
 
+  self.updateRepository = function () {
+    $.ajax(
+      {
+        type: "GET",
+        url: self.source + "/repository",
+        dataType: "json",
+        success: function (data) {
+
+          self.repository.removeAll();
+          data.items.map(function (item) {
+            return new RepositoryKnowledgeBase(item);
+          }).forEach(function (item) {
+            self.repository.push(item);
+
+
+          });
+        }
+    });
+
+
+  };
+
 
   self.updateFacts = function () {
+      console.log("updating facts");
       self.facts.removeAll();
       $.get(self.source + "/facts", function (data) {
        data
@@ -113,6 +175,7 @@ function appViewModel() {
         .forEach(function (item) {
           self.facts.push(item);
         }); 
+        self.updateChallenges();
       }); 
   };
 
@@ -121,8 +184,6 @@ function appViewModel() {
     insert: self.updateChallenges.bind(self),
   };
 
-  self.updateFacts();
-  self.updateChallenges();
 
   this.useQuestion = function (challenge, index) {
     var id = challenge.id;
@@ -132,6 +193,7 @@ function appViewModel() {
     self.inputs.push(new Requirement(id, question));
     self.fetchLanguageCode(self.language());
   };
+
 
   this.addRecord = function (item) {
     var requestData = ko.toJSON(item);

@@ -2,15 +2,29 @@ var $ = require('jquery');
 require('./app/styles/styles.css');
 require('./node_modules/semantic-ui/dist/semantic.min.css');
 require('./node_modules/semantic-ui/dist/semantic.min.js');
-require(['./app/vendor/knockout-3.4.0.js', './app/main', './app/vendor/jsoneditor.min.js'],
-function(ko, appViewModel, _JSONEditor) {
+window.ko = require('./app/vendor/knockout-3.4.0.js');
+// require('./node_modules/historyjs/scripts/bundled/html4+html5/jquery.history.js');
+/*, './node_modules/historyjs/scripts/bundled/html4+html5/jquery.history.js' */
+
+require('./node_modules/pagerjs/pager.js');
+require(['./app/main', './app/vendor/jsoneditor.min.js'],
+function(appViewModel, _JSONEditor) {
+
+    // pager.Href5.history = History;
+    // pager.useHTML5history = true;
+    pager.Href.hash = "#"; 
 
     console.log("init");
-
-
     $(document).ready(function () {
-      ko.applyBindings(new appViewModel());
-      console.log(JSONEditor);
+
+    var viewModel = new appViewModel()
+
+    pager.extendWithPage(viewModel);
+
+    ko.applyBindings(viewModel);
+    pager.start();
+
+    console.log(JSONEditor);
 
     $('.ui.search')
         .search({

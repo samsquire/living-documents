@@ -61,17 +61,17 @@ def query(prefix):
   return generate
 
 def update_questions(questions):
-  db = open_db()
   for question in questions:
+    db = open_db()
     identifier = str(question["question"])
     questionData = db.get(identifier)
+    db.close()
 
     if questionData:
       data = json.loads(questionData)
     else:
       data = {} 
     data.update(question)
-    db.close()
     save("/questions/question-", identifier, data, count=False)
   db.close()
 
@@ -82,6 +82,20 @@ def search():
       {"title": "I like"},
       {"title": "I want"}
   ]})  
+
+@app.route("/knowledge", methods=["GET"])
+def knowledge():
+  return json.dumps({
+    "items": [ 
+      {"name": "UK Tax calculations", "author": "Sam Squire", "completedChallenges": 3, "challenges": 16}, {"name": "Daily living costs", "author": "Sam Squire", "completedChallenges": 5, "challenges": 8}
+  ]})
+
+@app.route("/repository", methods=["GET"])
+def repository():
+  return json.dumps({
+    "items": [ 
+      {"name": "UK Tax calculations", "author": "Sam Squire", "description": "Calculate your personal tax statistics"}, {"name": "Daily living costs", "author": "Sam Squire", "description": "Calculate various interesting statistics about your living costs"}
+  ]})
 
 @app.route("/challenges", methods=["POST"])
 def save_challenge():
