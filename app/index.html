@@ -17,8 +17,46 @@
 <body>
 
     <div class="ui container">
+
+<!-- device menu -->
+  <div class="ui flowing basic network popup">
+    <div class="ui three column relaxed divided grid">
+      <div class="column">
+        <h4 class="ui header">Devices</h4>
+        <div class="ui link list">
+          <a class="item">NJ550</a>
+          <a class="item">Z87</a>
+        </div>
+      </div>
+      <div class="column">
+        <h4 class="ui header">Resources</h4>
+        <div class="ui link list">
+          <a class="item">Anthropology</a>
+          <a class="item">Economics</a>
+          <a class="item">Media Studies</a>
+          <a class="item">Philosophy</a>
+        </div>
+      </div>
+      <div class="column">
+        <h4 class="ui header">Social Sciences</h4>
+        <div class="ui link list">
+          <a class="item">Food Studies</a>
+          <a class="item">Journalism</a>
+          <a class="item">Non Profit Management</a>
+        </div>
+      </div>
+    </div>
+</div> <!-- device menu -->
+
+
+
       <div class="ui menu">
-        <a data-bind="page-href: 'start'" class="item">Data</a>
+          <div class="browse item">
+            <i class="laptop icon"></i>
+           <div class="floating ui red label">3</div>
+          </div>
+
+        <a data-bind="page-href: 'dashboard'" class="item">Data</a>
         <a data-bind="page-href: 'bases'" class="item">Knowledge</a>
         <div class="right menu">
           <div class="ui item">
@@ -32,7 +70,20 @@
         </div>
       </div>
 
-   <div data-bind="page: {id: 'start'}"> 
+  <div data-bind="page: {id: 'wizard'}">
+    <h1>Welcome to living documents</h1>    
+    <p>Where would you like to keep your data?</p>
+       <button class="ui primary button" data-storage-mode="home" data-bind="click: selectStorage">
+          Use my home directory
+        </button>
+
+        <button class="ui button" data-storage-mode="custom" data-bind="click: selectStorage">
+          Use a custom directory
+        </button> 
+  </div>
+
+
+   <div data-bind="page: {id: 'dashboard'}"> 
         <h1 class="ui header huge">Open challenge feed</h1>
         <p>These are available information challenges for you. The more questions you answer, the more challenges will become available.</p>
 
@@ -303,7 +354,6 @@ $root.useQuestion(challenge, $index());}">
             <!-- <div id="editor"></div> -->
 
 
-    <script src="bundle.js"></script>
 </body>
 
 </html>

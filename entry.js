@@ -6,13 +6,17 @@ window.ko = require('./app/vendor/knockout-3.4.0.js');
 // require('./node_modules/historyjs/scripts/bundled/html4+html5/jquery.history.js');
 /*, './node_modules/historyjs/scripts/bundled/html4+html5/jquery.history.js' */
 
+var kr = require('./app/knowledgeRepository');
+
+console.log(kr);
+
 require('./node_modules/pagerjs/pager.js');
 require(['./app/main', './app/vendor/jsoneditor.min.js'],
 function(appViewModel, _JSONEditor) {
 
     // pager.Href5.history = History;
     // pager.useHTML5history = true;
-    pager.Href.hash = "#"; 
+    pager.Href.hash = "#/"; 
 
     console.log("init");
     $(document).ready(function () {
@@ -23,6 +27,7 @@ function(appViewModel, _JSONEditor) {
 
     ko.applyBindings(viewModel);
     pager.start();
+    
 
     console.log(JSONEditor);
 
@@ -41,7 +46,18 @@ function(appViewModel, _JSONEditor) {
       ;
 
 
-
+   
+  $('.browse.item')
+    .popup({
+      popup     : '.network.popup',
+      hoverable : true,
+      position  : 'bottom left',
+      delay     : {
+        show: 300,
+        hide: 400
+      }
+    })
+  ; 
 
       
       /*

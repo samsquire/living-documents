@@ -192,6 +192,19 @@ def newCode():
 def retrieve_facts():
   return Response(query(b'fact-')(), content_type="application/json")
 
+@app.route("/login", methods=["GET"])
+def login():
+  db = open_db()
+  user = db.get("user")
+  if not user:
+    response = {"registered": False}
+    db.put("user", json.dumps(response))
+  else:
+    response = json.loads(user)
+  db.close()
+  return Response(json.dumps(response), content_type="application/json") 
+  
+
 def friendly_name(question_text):
   name = question_text.title().replace(" ", "").replace("?", "")
   return name[:1].lower() + name[1:]

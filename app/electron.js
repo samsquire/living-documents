@@ -1,14 +1,77 @@
 'use strict';
 
 const electron = require('electron');
+const async = require('async');
+const fs = require('fs');
+const shelljs = require('shelljs');
 // Module to control application life.
 const app = electron.app;
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
 
+
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+
+var shell = require('shelljs');
+
+shell.cd();
+var livingDocumentsHome = '.livingdocuments';
+shell.mkdir(livingDocumentsHome);
+shell.cd(livingDocumentsHome);
+var repo = "git@github.com:samsquire/living-documents-library.git";
+var folder = "living-documents-library";
+
+if (shell.test('-d', folder)) {
+  shell.cd(folder);
+  shell.exec('git pull', function (code, stdout, stderr) {
+    if (code === 0) {
+      console.log("library updates downloaded");
+    } else {
+      console.log("library failed to update");
+    }
+ });
+} else { 
+  shell.exec('git clone ' + repo, function (code, stdout, stderr) { 
+    if (code === 0) { 
+      console.log("library downloaded");
+    } else {
+      console.log("library failed download");
+    }
+
+  });
+}
+
+const ipcMain = require('electron').ipcMain;
+ipcMain.on('get available repository knowledgebases', function(event, arg) {
+
+  var available = shell.find('~/.livingdocuments/living-documents-library/')
+      .filter(
+  function (item) {
+    return item.match(/livingdocument\.json/);
+  });
+  console.log(available);
+
+  async.map(available, function (item, finishedItem) {
+    console.log(item);  
+    fs.readFile(item, function (err, data) {
+      if (!err) {
+        var metadata = JSON.parse(data);
+        finishedItem(null, metadata);
+        
+      } else {
+        finishedItem(err);
+      }
+
+    });
+
+  }, function (err, results) {
+    event.sender.send('available knowledgebases', results);
+  });  
+
+});
 
 function createWindow () {
   // Create the browser window.
@@ -18,7 +81,7 @@ function createWindow () {
   console.log(__dirname);
 
   // and load the index.html of the app.
-  mainWindow.loadURL('file://' + __dirname + '/index.html');
+  mainWindow.loadURL('file://' + __dirname + '/electron.html');
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function() {

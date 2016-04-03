@@ -1,21 +1,13 @@
+var config = require('./config');
 var ko = require('./vendor/knockout-3.4.0.js');
+var knowledgeRepository = require('./knowledgeRepository');
+var knowledge = require('./models/knowledge');
+var RepositoryKnowledgeBase = knowledge.RepositoryKnowledgeBase;
+var KnowledgeBase = knowledge.KnowledgeBase;
 
 function Question(data) {
   this.question = data.question;
   this.answer = ko.observable(data.answer);
-}
-function RepositoryKnowledgeBase(data) {
-  this.name = data.name;
-  this.author = data.author;
-  this.description = data.description;
-}
-
-function KnowledgeBase(data) {
-  this.name = data.name;
-  this.challenges = data.challenges;
-  this.completedChallenges = data.completedChallenges;
-  this.completedness = (this.completedChallenges / this.challenges) * 100
-  this.author = data.author;
 }
 
 function Requirement(id, question) {
@@ -43,13 +35,14 @@ function Fact(data) {
 function appViewModel() {
   var self = this;
   self.mode = ko.observable("browse");
+  self.storageSelection = ko.observable("");
   self.records = ko.observableArray();
 
   self.knowledgebase = ko.observableArray();
   self.repository = ko.observableArray();
 
   self.newQuestionText = ko.observable("");
-  self.source = "http://localhost:5000";
+  self.source = config.source;
   self.language = ko.observable("javascript");
   self.inputs = ko.observableArray();
   self.code = ko.observable("");
@@ -68,23 +61,50 @@ function appViewModel() {
   }); 
 
   self.fetchKnowledgebases = function () {
+    knowledgeRepository.fetchKnowledgebases(function (data) {
+      self.knowledgebase.removeAll();
+      data.forEach(function (item) {
+        self.knowledgebase.push(item);
+      });
+      self.updateFacts();
+    });
+  };
+
+  self.login = function () {
+
     $.ajax(
       {
         type: "GET",
-        url: self.source + "/knowledge",
+        url: self.source + "/login",
         dataType: "json",
         success: function (data) {
-          self.knowledgebase.removeAll();
-
-          data.items.map(function (item) {
-            return new KnowledgeBase(item);
-          }).forEach(function (item) {
-            self.knowledgebase.push(item);
-          });
-          self.updateFacts();
+          
+          if (!data.registered) {
+            console.log("user not set up");
+            pager.navigate('#/wizard');
+          } else {
+            console.log("user set up");
+            pager.navigate('#/dashboard');
+            self.onLoggedIn();
+          }
         }
     });
+  }
+
+  self.login();
+
+  self.selectStorage = function (context, event) {
+    self.storageSelection($(event.target).attr('data-storage-mode'));
+    console.log("storage mode changed to", self.storageSelection());
+    pager.navigate("#/dashboard");
+    self.onLoggedIn();
+  }
+
+  self.onLoggedIn = function () {
+    self.fetchKnowledgebases();
+    self.fetchLanguageCode(self.language());
   };
+
 
   self.switchTab = function (context, event) {
     var newMode = $(event.target).attr('data-mode');
@@ -112,12 +132,10 @@ function appViewModel() {
           console.log(data)
           self.code(data.code);
           self.dirty(false);
-          self.fetchKnowledgebases();
         }
     });
   };
 
-  self.fetchLanguageCode(self.language());
 
   self.switchLanguage = function (language, event) {
     var language = $(event.target).attr('data-language');
@@ -142,25 +160,12 @@ function appViewModel() {
 
 
   self.updateRepository = function () {
-    $.ajax(
-      {
-        type: "GET",
-        url: self.source + "/repository",
-        dataType: "json",
-        success: function (data) {
-
-          self.repository.removeAll();
-          data.items.map(function (item) {
-            return new RepositoryKnowledgeBase(item);
-          }).forEach(function (item) {
-            self.repository.push(item);
-
-
-          });
-        }
+    knowledgeRepository.updateRepository(function (data) {
+        self.repository.removeAll();
+        data.forEach(function (item) {
+          self.repository.push(item);
+        });
     });
-
-
   };
 
 
