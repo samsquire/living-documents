@@ -1,6 +1,7 @@
 var config = require('./config');
 var ko = require('./vendor/knockout-3.4.0.js');
 var knowledgeRepository = require('./knowledgeRepository');
+var storage = require('./storagePicker');
 var knowledge = require('./models/knowledge');
 var RepositoryKnowledgeBase = knowledge.RepositoryKnowledgeBase;
 var KnowledgeBase = knowledge.KnowledgeBase;
@@ -94,10 +95,15 @@ function appViewModel() {
   self.login();
 
   self.selectStorage = function (context, event) {
-    self.storageSelection($(event.target).attr('data-storage-mode'));
-    console.log("storage mode changed to", self.storageSelection());
-    pager.navigate("#/dashboard");
-    self.onLoggedIn();
+    var mode = $(event.target).attr('data-storage-mode');
+    self.storageSelection(mode);
+    console.log("storage mode changed to", mode);
+
+    storage.open(mode, function (file) {
+      pager.navigate("#/dashboard");
+      self.onLoggedIn();
+    });
+
   }
 
   self.onLoggedIn = function () {

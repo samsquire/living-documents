@@ -73,6 +73,18 @@ ipcMain.on('get available repository knowledgebases', function(event, arg) {
 
 });
 
+
+ipcMain.on('open storage', function(event, arg) {
+
+  if (arg === "custom") {
+    const dialog = require('electron').dialog;
+    var selection = dialog.showOpenDialog({ properties: [ 'openFile', 'openDirectory']});  
+    console.log(selection);
+    event.sender.send('opened', selection);
+  } 
+});
+
+
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({width: 800, height: 600});
