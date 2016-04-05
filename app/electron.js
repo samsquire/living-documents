@@ -1,5 +1,7 @@
 'use strict';
 
+const homeDir = require('home-dir').directory;
+const path = require('path');
 const electron = require('electron');
 const async = require('async');
 const fs = require('fs');
@@ -10,6 +12,14 @@ const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 
 
+var livingDocumentsHome = '.livingdocuments';
+var libraryFolder = "living-documents-library";
+var activeRepo = path.join(homeDir, livingDocumentsHome, "default");
+
+function libraryPath() {
+  return path.join(homeDir, livingDocumentsHome, libraryFolder);
+}
+
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -18,14 +28,13 @@ let mainWindow;
 var shell = require('shelljs');
 
 shell.cd();
-var livingDocumentsHome = '.livingdocuments';
 shell.mkdir(livingDocumentsHome);
 shell.cd(livingDocumentsHome);
 var repo = "git@github.com:samsquire/living-documents-library.git";
-var folder = "living-documents-library";
 
-if (shell.test('-d', folder)) {
-  shell.cd(folder);
+
+if (shell.test('-d', libraryFolder)) {
+  shell.cd(libraryFolder);
   shell.exec('git pull', function (code, stdout, stderr) {
     if (code === 0) {
       console.log("library updates downloaded");
@@ -33,9 +42,9 @@ if (shell.test('-d', folder)) {
       console.log("library failed to update");
     }
  });
-} else { 
+} else {
   shell.exec('git clone ' + repo, function (code, stdout, stderr) { 
-    if (code === 0) { 
+    if (code === 0) {
       console.log("library downloaded");
     } else {
       console.log("library failed download");
@@ -60,7 +69,6 @@ ipcMain.on('get available repository knowledgebases', function(event, arg) {
       if (!err) {
         var metadata = JSON.parse(data);
         finishedItem(null, metadata);
-        
       } else {
         finishedItem(err);
       }
@@ -69,21 +77,84 @@ ipcMain.on('get available repository knowledgebases', function(event, arg) {
 
   }, function (err, results) {
     event.sender.send('available knowledgebases', results);
-  });  
+  });
 
 });
 
+function currentSettingsPath(source) {
+  return path.join(source, "settings.json")
+}
+
 
 ipcMain.on('open storage', function(event, arg) {
-
   if (arg === "custom") {
     const dialog = require('electron').dialog;
     var selection = dialog.showOpenDialog({ properties: [ 'openFile', 'openDirectory']});  
     console.log(selection);
-    event.sender.send('opened', selection);
-  } 
+    activeRepo = selection[0];
+  }
+
+  console.log("opening repository at", activeRepo);
+  if (!shell.test('-d', activeRepo)) {
+    console.log("repo does not exist");
+    shell.mkdir(activeRepo);
+  } else {
+    console.log("repository already exists");
+  }
+
+  var settingsPath = currentSettingsPath(activeRepo);
+
+  console.log("settings path", settingsPath);
+
+  if (!shell.test('-f', settingsPath)) {
+    console.log("no settings file exists, writing");
+    var data = {
+      "version": "0"
+    }
+    fs.writeFile(settingsPath, JSON.stringify(data));
+  } else {
+    console.log("settings file exists");
+  }
+
+  var packageJson = path.join(activeRepo, "package.json");
+  if (!shell.test('-f', packageJson)) {
+    shell.cd(activeRepo);
+    shell.exec('npm init -y', function (code, stdout, stderr) {
+      event.sender.send('opened', activeRepo);
+    });
+  } else {
+    event.sender.send('opened', activeRepo);
+  }
+
 });
 
+ipcMain.on('install knowledgebase', function(event, arg) {
+  var knowledgebasePath =  path.join(libraryPath(), arg);
+  var knowledgebaseSettingsPath = path.join(knowledgebasePath, "livingdocument.json");
+  console.log("installing knowledge base", arg, knowledgebaseSettingsPath);
+
+  fs.readFile(knowledgebaseSettingsPath, function (err, data) {
+    var metadata = JSON.parse(data);
+    console.log(metadata);
+
+    if (err) {
+      console.log("failed to update knowledgebase"); 
+      return;
+    }
+    var packageName = metadata.package;
+
+    if (!packageName) {
+      packageName = knowledgebasePath ;
+    }
+    console.log("now installing package", packageName);
+    shell.exec('npm install --save ' + packageName, function (code, stdout, stderr) {
+      event.sender.send('installed', arg);
+    });
+
+  });
+
+
+});
 
 function createWindow () {
   // Create the browser window.

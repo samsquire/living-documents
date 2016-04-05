@@ -1,4 +1,7 @@
 const ipcRenderer = window.require('electron').ipcRenderer;
+const knowledge = require('./models/knowledge');
+const RepositoryKnowledgeBase = knowledge.RepositoryKnowledgeBase;
+
 
 function KnowledgeRepository() {
   var self = this;
@@ -8,7 +11,10 @@ function KnowledgeRepository() {
     console.log("updating repository");
 
     ipcRenderer.on('available knowledgebases', function(event, arg) {
-      callback(arg);
+      console.log(RepositoryKnowledgeBase);
+      callback(arg.map(function (item) {
+        return new RepositoryKnowledgeBase(item);
+      }));
     });
     ipcRenderer.send('get available repository knowledgebases');
   };

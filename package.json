@@ -6,7 +6,7 @@
   "main": "app/electron.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "cp -r app/* build; cp -r assets/* build; webpack",
+    "build": "cp -R app/* build; cp -R assets/* build; webpack",
     "watch": "webpack-dev-server ./entry.js --hot --inline --content-base app",
     "start": "npm run build; electron build",
     "postinstall": "install-app-deps",
@@ -44,6 +44,7 @@
     "webpack": "^1.12.14"
   },
   "dependencies": {
+    "home-dir": "^1.0.0",
     "leveldown": "^1.4.4",
     "levelup": "^1.3.1",
     "lodash": "^4.6.1",

@@ -3,6 +3,8 @@ function RepositoryKnowledgeBase(data) {
   this.name = data.name;
   this.author = data.author;
   this.description = data.description;
+  this.installing = ko.observable(false);
+  this.installed = ko.observable(false);
 }
 function KnowledgeBase(data) {
   this.name = data.name;

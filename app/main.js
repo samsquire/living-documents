@@ -59,7 +59,17 @@ function appViewModel() {
     console.log("language changes to", newLanguage);
     if (self.dirty()) { return; }
     self.fetchLanguageCode(newLanguage);
-  }); 
+  });
+
+  self.install = function (data) {
+    console.log("installing", data);
+    data.installing(true);
+
+    storage.install(data.name, function() {
+      data.installing(false);
+      data.installed(true);
+    });
+  }
 
   self.fetchKnowledgebases = function () {
     knowledgeRepository.fetchKnowledgebases(function (data) {

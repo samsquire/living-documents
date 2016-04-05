@@ -16,7 +16,7 @@
 
 <body>
 
-    <div class="ui container">
+    <div class="ui container" style="display: none;" data-bind="visible: true">
 
 <!-- device menu -->
   <div class="ui flowing basic network popup">
@@ -103,7 +103,7 @@
                 </div>
                 <button class="ui button" type="submit">Submit</button>
               </form>
-        
+
       </div> <!-- insert segment -->
       <div data-bind="css: {active: mode() == 'browse'}" class="ui bottom attached tab segment">
          <div 
@@ -316,19 +316,26 @@ $root.useQuestion(challenge, $index());}">
 
       </div><!-- installed tab -->  
 
-      
       <div data-bind="page: {id: 'available', role: 'start'}" class="ui bottom attached tab segment">
 
       <!-- cards -->
 
 <div class="ui cards">
+
   <!-- ko foreach: repository -->
-  <div class="card">
+  <div class="card" data-bind="click: $root.install.bind($data)">
     <div class="content">
       <div class="header" data-bind="text: name"></div>
-      <div class="meta" data-bind="text: author"></div>
-      <div class="description" data-bind="text: description">
+      <div class="meta">
+        <span data-bind="text: author"></span>
+        <span data-bind="visible: installed">Installed</span>
       </div>
+      <div class="description" data-bind="text: description"></div>
+        <div data-bind="visible: installing" class="ui indicating progress">
+            <div class="bar"></div>
+              <div class="label">Installing</div>
+        </div>
+
     </div>
   </div>
   <!-- /ko -->

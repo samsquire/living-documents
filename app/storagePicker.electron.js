@@ -9,7 +9,18 @@ function StoragePicker() {
       callback(arg);
     });
     ipcRenderer.send('open storage', mode);
-  }
+  };
+
+  self.install = function(id, callback) {
+    console.log("electron installing ", id);
+
+    ipcRenderer.on('installed', function(event, arg) {
+      console.log("have installed", id, arg);
+      callback(arg);
+    });
+
+    ipcRenderer.send('install knowledgebase', id);
+  };
 
 }
 

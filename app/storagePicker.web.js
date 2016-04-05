@@ -3,7 +3,11 @@ function StoragePicker() {
 
   self.open = function (mode, callback) {
     callback();
-  } 
+  }; 
+
+  self.install = function (id, callback) {
+    
+  }
 
 }
 
