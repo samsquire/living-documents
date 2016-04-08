@@ -1,5 +1,6 @@
 'use strict';
-
+const _ = require('lodash');
+const Bacon = require('baconjs').Bacon;
 const homeDir = require('home-dir').directory;
 const path = require('path');
 const electron = require('electron');
@@ -10,19 +11,193 @@ const shelljs = require('shelljs');
 const app = electron.app;
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
-
+const levelup = require('levelup');
 
 var livingDocumentsHome = '.livingdocuments';
 var libraryFolder = "living-documents-library";
 var activeRepo = path.join(homeDir, livingDocumentsHome, "default");
+var repo = null;
 
 function libraryPath() {
   return path.join(homeDir, livingDocumentsHome, libraryFolder);
 }
 
+function ExecutionPlan() {
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
+}
+
+function Repo(repoPath) {
+  var self = this;
+  self.path = repoPath;
+  self.dataSources = {};
+  self.database = path.join(repoPath, "db");
+
+  shell.cd(self.database);
+  if (shell.test('-f', 'LOCK')) {
+    shell.rm('LOCK');
+    console.log("unlocked folder");
+  }
+  shell.cd(self.path);
+
+  self.challenges = function (callback) {
+    self.query("challenge", callback);
+  };
+
+  self.dependencies = function (callback) {
+    shell.cd(self.path);
+    fs.readFile("settings.json", function (err, data) {
+      if (err) { return; }
+      var settings = JSON.parse(data);
+      if (!('dependencies' in settings)) { return []; }
+
+      var modules = settings.dependencies.reduce(function (previous, current) {
+        previous[current] = require(path.join(libraryPath(), current));
+        return previous;
+      }, {});
+
+      async.map(settings.dependencies, function (item, finishedItem) {
+        fs.readFile(path.join(libraryPath(), item, "livingdocument.json"), function (err, knowledgebaseJson) {
+          if (err) { throw err; }
+          var knowledgeConfig = JSON.parse(knowledgebaseJson);
+          var mapping = {};
+          mapping.inputs = {};
+          mapping.outputs = {};
+          mapping.inputs[item] = _.keys(knowledgeConfig.dependencies);
+          mapping.outputs[item] = _.keys(knowledgeConfig.outputs);
+          finishedItem(null, mapping);
+        });
+      }, function (err, wantedAnswers) {
+        var deps = wantedAnswers.reduce(function (previous, current) {
+          return _.merge(previous, current);
+        }, {});
+        console.log(deps);
+        callback(deps, modules);
+      });
+    });
+  }
+
+  self.query = function (type, callback) {
+    var db = levelup(self.database, {createIfMissing: true});
+    var items = [];
+    var query = db.createReadStream({lt: type + "-" + '\xff',
+                                    gte: type + "-"  + '\x00'   })
+      .on('data', function (data) {
+        var parsed = JSON.parse(data.value)
+        items.push(parsed);
+    }).on('end', function () {
+        console.log("finished challenge query");
+        db.close();
+        callback(items);
+    }).on('error', function () {
+        console.log("error in query");
+        db.close();
+    });
+  }
+
+
+
+  self.save = function (type, data, event) {
+    var db = levelup(self.database);
+    var countKey = 'count-' + type;
+    var newChallenge = JSON.parse(data);
+    console.log("about to save challenge");
+    db.get(countKey, function (err, value) {
+      var currentCount, nextCount;
+      if (err) {
+        console.log("error getting count");
+        if (err.notFound) {
+          nextCount = 1;
+          console.log("starting new count");
+        } else {
+          console.log("other error");
+          db.close();
+          return;
+        }
+      } else {
+        var currentCount = parseInt(value)
+        nextCount = currentCount + 1;
+      }
+      db.put(countKey, nextCount);
+      newChallenge.id = nextCount;
+      db.put(type + '-' + nextCount, JSON.stringify(newChallenge));
+      db.close();
+      event.sender.send(type + ' saved', newChallenge);
+      console.log("just saved " + type, newChallenge);
+    });
+  }
+
+  self.allInputs = [];
+
+  self.execute = function () {
+    // create a graph of dependencies
+    // for each answer
+    // find dependency in graph
+    // execute knowledgebase
+    // for each generated fact
+    // execute knowledgebase
+    //
+    self.dependencies(function (wanted, availableModules) {
+
+      self.dataSources = _.reduce(wanted.inputs, function (previous, value, key) {
+        value.forEach(function (question) {
+          if (!(question in previous)) {
+            console.log("created bus for", question);
+            previous[question] = new Bacon.Bus();
+            self.allInputs.push(question);
+          } else {
+            console.log("reusing existing data source");
+          }
+        });
+        return previous;
+      }, {});
+
+      _.reduce(wanted.outputs, function (previous, value, key) {
+        value.forEach(function (question) {
+          if (!(question in previous)) {
+            console.log("created bus for", question);
+            previous[question] = new Bacon.Bus();
+          } else {
+            console.log("reusing existing data source");
+          }
+        });
+        return previous;
+      }, self.dataSources);
+
+      self.modules = _.reduce(wanted.inputs, function (previous, value, key) {
+        var dependencies = value.map(function (item) {
+          return self.dataSources[item];
+        });
+
+        console.log("module dependencies found", dependencies);
+        var bus = Bacon.combineWith(dependencies,
+                                    function () {
+          var batch = Array.prototype.slice.call(arguments);
+          var pairs = _.zip(value, batch)
+          var changedObject = _.fromPairs(pairs);
+          return changedObject;
+        });
+        previous[key] = bus;
+        bus.onValue(function (item) {
+          var outputData = availableModules[key](item);
+          console.log(key, "OUTPUT", outputData);
+
+          _.forEach(outputData, function (value, key) {
+            if (self.allInputs.indexOf(key) !== -1) {
+              console.log("looks like a module depends on our output", key);
+              self.dataSources[key].push(value);
+            }
+          });
+
+        });
+        return previous;
+      }, {});
+
+
+
+    });
+  }
+}
+
 let mainWindow;
 
 var shell = require('shelljs');
@@ -54,6 +229,15 @@ if (shell.test('-d', libraryFolder)) {
 }
 
 const ipcMain = require('electron').ipcMain;
+ipcMain.on('update challenge', function(event, updatedJson) {
+  var data = JSON.parse(updatedJson);
+  data.questions.forEach(function (question) {
+    var entry = repo.dataSources[question.question];
+    console.log("Submitting new value for " + question.question);
+    entry.push(question.answer);
+
+  });
+});
 ipcMain.on('get available repository knowledgebases', function(event, arg) {
 
   var available = shell.find('~/.livingdocuments/living-documents-library/')
@@ -61,10 +245,9 @@ ipcMain.on('get available repository knowledgebases', function(event, arg) {
   function (item) {
     return item.match(/livingdocument\.json/);
   });
-  console.log(available);
 
+  console.log("processing available", available.length);
   async.map(available, function (item, finishedItem) {
-    console.log(item);  
     fs.readFile(item, function (err, data) {
       if (!err) {
         var metadata = JSON.parse(data);
@@ -85,12 +268,14 @@ function currentSettingsPath(source) {
   return path.join(source, "settings.json")
 }
 
+ipcMain.on('save challenge', function(event, challengeRequest) {
+  repo.save("challenge", challengeRequest, event);
+});
 
 ipcMain.on('open storage', function(event, arg) {
   if (arg === "custom") {
     const dialog = require('electron').dialog;
     var selection = dialog.showOpenDialog({ properties: [ 'openFile', 'openDirectory']});  
-    console.log(selection);
     activeRepo = selection[0];
   }
 
@@ -126,30 +311,59 @@ ipcMain.on('open storage', function(event, arg) {
     event.sender.send('opened', activeRepo);
   }
 
+  repo = new Repo(activeRepo);
+  repo.execute();
 });
 
-ipcMain.on('install knowledgebase', function(event, arg) {
-  var knowledgebasePath =  path.join(libraryPath(), arg);
+
+ipcMain.on('get challenges', function(event, arg) {
+  repo.challenges(function (retrievedChallenges) {
+    console.log("got challenges");
+    event.sender.send('retrieved challenges', retrievedChallenges);
+  });
+});
+
+ipcMain.on('install knowledgebase', function(event, knowledgebaseName) {
+  var knowledgebasePath = path.join(libraryPath(), knowledgebaseName);
   var knowledgebaseSettingsPath = path.join(knowledgebasePath, "livingdocument.json");
-  console.log("installing knowledge base", arg, knowledgebaseSettingsPath);
+  console.log("installing knowledge base", knowledgebaseName, knowledgebaseSettingsPath);
 
   fs.readFile(knowledgebaseSettingsPath, function (err, data) {
     var metadata = JSON.parse(data);
-    console.log(metadata);
 
     if (err) {
       console.log("failed to update knowledgebase"); 
       return;
     }
-    var packageName = metadata.package;
+    var packageName = knowledgebaseName;
 
-    if (!packageName) {
-      packageName = knowledgebasePath ;
-    }
+//    if (!packageName) {
+//      packageName = knowledgebasePath ;
+//    }
     console.log("now installing package", packageName);
-    shell.exec('npm install --save ' + packageName, function (code, stdout, stderr) {
-      event.sender.send('installed', arg);
+    shell.cd(repo.path);
+
+    fs.readFile('settings.json', function (err, data) {
+      var settings = JSON.parse(data);
+      if (!('dependencies' in settings)) {
+        settings.dependencies = [];
+      }
+      if (settings.dependencies.indexOf(packageName) == -1) {
+        settings.dependencies.push(packageName);
+      }
+
+      fs.writeFile('settings.json', JSON.stringify(settings, null, 4), function (err) {
+        if (!err) {
+          repo.execute();
+          event.sender.send('installed', knowledgebaseName);
+        }
+      });
     });
+
+//     console.log("installing in", repo.path)
+//     shell.exec('npm install --save ' + packageName, function (code, stdout, stderr) {
+//       event.sender.send('installed', arg);
+//     });
 
   });
 
@@ -159,9 +373,6 @@ ipcMain.on('install knowledgebase', function(event, arg) {
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({width: 800, height: 600});
-
-
-  console.log(__dirname);
 
   // and load the index.html of the app.
   mainWindow.loadURL('file://' + __dirname + '/electron.html');
@@ -195,3 +406,4 @@ app.on('activate', function () {
     createWindow();
   }
 });
+

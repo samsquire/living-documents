@@ -10,7 +10,8 @@ Let's focus efforts on standalone mode first or web based?
  * Ask the user to pick a folder to save the user's data
  * Write a `settings.json`
  * Install some basic starting knowledgebases
- * 	
+
+
 
 ## Web - single tenant
 
@@ -34,11 +35,9 @@ I have a knowledgebase installed, such as UK Taxation.
 
 UK Taxation depends on various pieces of information such as my gross salary and my net pay.
 
-The UK Taxation knowledge base is script based and accepts JSON on stdin and emits JSON on stdout.
+If your script is a NPM module, ensure that the module exposes a `runKnowledgebase(data)`.
 
-The script is always assumed to be named after the knowledgebase name?
-
-If your script is a NPM module, ensure that it has a command line script?
+Return a JSON array of new data contributions
 
 Or when imported exposes a `extractChallenges` method and `executeFacts` method.
 

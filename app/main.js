@@ -1,15 +1,13 @@
 var config = require('./config');
 var ko = require('./vendor/knockout-3.4.0.js');
 var knowledgeRepository = require('./knowledgeRepository');
+var challengeRepository = require('./challengeRepository');
 var storage = require('./storagePicker');
 var knowledge = require('./models/knowledge');
 var RepositoryKnowledgeBase = knowledge.RepositoryKnowledgeBase;
 var KnowledgeBase = knowledge.KnowledgeBase;
+var Challenge = knowledge.Challenge;
 
-function Question(data) {
-  this.question = data.question;
-  this.answer = ko.observable(data.answer);
-}
 
 function Requirement(id, question) {
   var self = this;
@@ -17,15 +15,6 @@ function Requirement(id, question) {
   self.question = question;
 }
 
-function Challenge(data) {
-  var self = this;
-  this.id = data.id;
-  this.questions = ko.observableArray();
-  this.path = data.path;
-
-  data.questions.map(function (question) { return new Question(question)  }).forEach(function (question) { self.questions.push(ko.observable(question)); });
-
-}
 
 function Fact(data) {
   this.description = ko.observable(data.description);
@@ -160,18 +149,14 @@ function appViewModel() {
 
 
   self.updateChallenges = function () {
-    self.records.removeAll();
-    $.get(self.source + "/challenges", function (data) {
-     data
-      .map(function (item) {
-      return new Challenge(item);
-     })
-      .forEach(function (item) {
+    challengeRepository.updateChallenges(function (data) {
+      self.records.removeAll();
+      data.forEach(function (item) {
         self.records.push(item);
-      }); 
-    }); 
+      });
+      self.updateRepository();
 
-    self.updateRepository();
+    });
   };
 
 
@@ -195,9 +180,9 @@ function appViewModel() {
        })
         .forEach(function (item) {
           self.facts.push(item);
-        }); 
+        });
         self.updateChallenges();
-      }); 
+      });
   };
 
   self.tabUpdates = {
@@ -217,20 +202,13 @@ function appViewModel() {
 
 
   this.addRecord = function (item) {
-    var requestData = ko.toJSON(item);
-    $.ajax(
-    {
-        url: self.source + "/challenges",
-        contentType: 'application/json; charset=utf-7',
-        type: "POST",
-        dataType: "json",
-        data: requestData,
-        success: function (response) {
-          console.log();
-          self.records.unshift(new Challenge(response));
-        }
+    var newChallenge = ko.toJSON(item);
+    challengeRepository.addChallenge(newChallenge, function (response) {
+      console.log(response);
+      self.records.unshift(new Challenge(response));
     });
-  return false;
+
+    return false;
   };
 
   this.reset = function () {
@@ -278,20 +256,9 @@ function appViewModel() {
   };
 
   this.save = function (row) {
-    console.log(row);
-
-    $.ajax(
-    {
-        url: self.source + "/challenges/" + row.id,
-        type: "POST",
-        contentType: 'application/json; charset=utf-8',
-        dataType: "json",
-        data: ko.toJSON(row),
-        success: function (response) {
-          console.log("updated", row.id);  
-        }
+    challengeRepository.save(ko.toJSON(row), function () {
+      console.log("updated", row.id);
     });
-
   };
 
 }

@@ -183,7 +183,6 @@ def newCode():
     file.write(code)
 
   run_job(identifier)
-  
   return Response(json.dumps({
     "output": "executed",
   }), content_type="application/json")

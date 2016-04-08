@@ -53,7 +53,7 @@ function run(job, jobName) {
   var app = require(job);
   console.log(app);
   console.log(data);
-  
+
   var db = levelup('./db');
   var gets = _.map(data, function (value, key) {
 
