@@ -55,8 +55,8 @@ function appViewModel() {
     data.installing(true);
 
     storage.install(data.name, function() {
-      data.installing(false);
-      data.installed(true);
+      self.fetchKnowledgebases();
+      self.updateRepository();
     });
   }
 
@@ -101,12 +101,12 @@ function appViewModel() {
     storage.open(mode, function (file) {
       pager.navigate("#/dashboard");
       self.onLoggedIn();
+      self.updateChallenges();
     });
 
   }
 
   self.onLoggedIn = function () {
-    self.fetchKnowledgebases();
     self.fetchLanguageCode(self.language());
   };
 
@@ -154,8 +154,7 @@ function appViewModel() {
       data.forEach(function (item) {
         self.records.push(item);
       });
-      self.updateRepository();
-
+      self.fetchKnowledgebases();
     });
   };
 
@@ -181,8 +180,8 @@ function appViewModel() {
         .forEach(function (item) {
           self.facts.push(item);
         });
-        self.updateChallenges();
       });
+    self.updateRepository();
   };
 
   self.tabUpdates = {
@@ -206,6 +205,7 @@ function appViewModel() {
     challengeRepository.addChallenge(newChallenge, function (response) {
       console.log(response);
       self.records.unshift(new Challenge(response));
+      self.updateChallenges();
     });
 
     return false;
@@ -258,6 +258,7 @@ function appViewModel() {
   this.save = function (row) {
     challengeRepository.save(ko.toJSON(row), function () {
       console.log("updated", row.id);
+      self.fetchKnowledgebases();
     });
   };
 

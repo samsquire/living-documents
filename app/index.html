@@ -260,7 +260,7 @@ $root.useQuestion(challenge, $index());}">
 
        <div class="ui top attached tabular menu">
         <div class="item" data-bind="css: {active: $page.find$('installed')().isVisible }">
-            <a data-bind="page-href: 'installed'">Installed</a>
+          <a data-bind="page-href: 'installed'">Installed</a>
         </div>
 
         <div class="item" data-bind="css: {active: $page.find$('available')().isVisible }">
@@ -277,12 +277,14 @@ $root.useQuestion(challenge, $index());}">
         <tr><th>Package name</th>
         <th>Author</th>
         <th>Completedness</th>
-      
       </tr></thead>
       <tbody data-bind="foreach: knowledgebase">
 
         <tr>
-          <td data-bind="text: name"></td>
+          <td>
+            <div data-bind="text: name"></div>
+            <div data-bind="text: description"></div>
+          </td>
           <td><a data-bind="text: author"></a></td>
           <td>
 
@@ -291,7 +293,7 @@ $root.useQuestion(challenge, $index());}">
               <div class="progress"></div>
             </div>
           </div>
-
+            <span data-bind="text: completedChallenges"></span>/<span data-bind="text: challenges"></span>
           </td>
         </tr>
 

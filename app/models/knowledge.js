@@ -3,19 +3,16 @@ function RepositoryKnowledgeBase(data) {
   this.name = data.name;
   this.author = data.author;
   this.description = data.description;
-  this.installing = ko.observable(false);
-  this.installed = ko.observable(false);
+  this.installing = ko.observable(data.installing || false);
+  this.installed = ko.observable(data.installed);
 }
 function KnowledgeBase(data) {
   this.name = data.name;
   this.completedChallenges = data.completedChallenges || 0;
-  this.challenges = data.challenges || 0;
-  if (challenges == 0) {
-    this.completedness = 100;
-  } else {
-    this.completedness = (this.completedChallenges / this.challenges) * 100
-  }
+  this.challenges = data.challenges || 1;
+  this.completedness = (this.completedChallenges / this.challenges) * 100
   this.author = data.author;
+  this.description = data.description;
 }
 function Question(data) {
   this.question = data.question;
