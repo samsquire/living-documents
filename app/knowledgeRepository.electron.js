@@ -1,14 +1,18 @@
 const ipcRenderer = window.require('electron').ipcRenderer;
 const knowledge = require('./models/knowledge');
 const RepositoryKnowledgeBase = knowledge.RepositoryKnowledgeBase;
+const KnowledgeBase = knowledge.KnowledgeBase;
 
 
 function KnowledgeRepository() {
   var self = this;
-  console.log("electron knowledge repository");
 
   ipcRenderer.on('available knowledgebases', function(event, arg) {
     self.onRepositories(event, arg);
+  });
+  self.onFetchedInstalledKnowledgebases = function () {}
+  ipcRenderer.on('installed knowledgebases', function(event, arg) {
+    self.onFetchedInstalledKnowledgebases(event, arg);
   });
 
   self.updateRepository = function (callback) {
@@ -23,8 +27,15 @@ function KnowledgeRepository() {
     ipcRenderer.send('get available repository knowledgebases');
   };
 
+
   self.fetchKnowledgebases = function (callback) {
-    callback([]);
+    self.onFetchedInstalledKnowledgebases = function (event, installed) {
+      console.log("repo received installed repositories");
+      callback(installed.map(function (data) {
+        return new KnowledgeBase(data);
+      }));
+    } 
+    ipcRenderer.send('get installed knowledgebases');
   };
 
 }

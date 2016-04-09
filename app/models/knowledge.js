@@ -8,9 +8,13 @@ function RepositoryKnowledgeBase(data) {
 }
 function KnowledgeBase(data) {
   this.name = data.name;
-  this.challenges = data.challenges;
-  this.completedChallenges = data.completedChallenges;
-  this.completedness = (this.completedChallenges / this.challenges) * 100
+  this.completedChallenges = data.completedChallenges || 0;
+  this.challenges = data.challenges || 0;
+  if (challenges == 0) {
+    this.completedness = 100;
+  } else {
+    this.completedness = (this.completedChallenges / this.challenges) * 100
+  }
   this.author = data.author;
 }
 function Question(data) {

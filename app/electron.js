@@ -43,38 +43,52 @@ function Repo(repoPath) {
     self.query("challenge", callback);
   };
 
+  self.installedModules = [];
+  self.installedModuleSettings = {};
+
   self.dependencies = function (callback) {
     shell.cd(self.path);
     fs.readFile("settings.json", function (err, data) {
       if (err) { return; }
       var settings = JSON.parse(data);
       if (!('dependencies' in settings)) { return []; }
+      self.installedModules = settings;
 
       var modules = settings.dependencies.reduce(function (previous, current) {
         previous[current] = require(path.join(libraryPath(), current));
         return previous;
       }, {});
 
-      async.map(settings.dependencies, function (item, finishedItem) {
+      console.log(modules);
+
+      async.reduce(settings.dependencies, {}, function (previous, item, itemParsed) {
         fs.readFile(path.join(libraryPath(), item, "livingdocument.json"), function (err, knowledgebaseJson) {
-          if (err) { throw err; }
-          var knowledgeConfig = JSON.parse(knowledgebaseJson);
-          var mapping = {};
-          mapping.inputs = {};
-          mapping.outputs = {};
-          mapping.inputs[item] = _.keys(knowledgeConfig.dependencies);
-          mapping.outputs[item] = _.keys(knowledgeConfig.outputs);
-          finishedItem(null, mapping);
+          var parsed = JSON.parse(knowledgebaseJson);
+          console.log("parsed dependency file", item);
+          previous[item] = parsed;
+          itemParsed(null, parsed);
         });
-      }, function (err, wantedAnswers) {
-        var deps = wantedAnswers.reduce(function (previous, current) {
-          return _.merge(previous, current);
-        }, {});
-        console.log(deps);
-        callback(deps, modules);
+      }, function (err, results) {
+        console.log("loaded", results.length, "modules");
+        self.installedModuleSettings = results;
       });
+
+      var mappings = _.map(self.installedModuleSettings, function (value, key) {
+        var mapping = {};
+        mapping.inputs = {};
+        mapping.outputs = {};
+        mapping.inputs[item] = _.keys(value.dependencies);
+        mapping.outputs[item] = _.keys(value.outputs);
+        return mapping;
+      });
+      var deps = mappings.reduce(function (previous, current) {
+        return _.merge(previous, current);
+      }, {});
+      console.log(deps);
+
+      callback(deps, modules);
     });
-  }
+  };
 
   self.query = function (type, callback) {
     var db = levelup(self.database, {createIfMissing: true});
@@ -88,8 +102,9 @@ function Repo(repoPath) {
         console.log("finished challenge query");
         db.close();
         callback(items);
-    }).on('error', function () {
-        console.log("error in query");
+    }).on('error', function (err) {
+        console.log("error in query", err);
+        
         db.close();
     });
   }
@@ -104,12 +119,12 @@ function Repo(repoPath) {
     db.get(countKey, function (err, value) {
       var currentCount, nextCount;
       if (err) {
-        console.log("error getting count");
+        console.log("error getting count", err);
         if (err.notFound) {
           nextCount = 1;
           console.log("starting new count");
         } else {
-          console.log("other error");
+          console.log("other error", err);
           db.close();
           return;
         }
@@ -117,12 +132,18 @@ function Repo(repoPath) {
         var currentCount = parseInt(value)
         nextCount = currentCount + 1;
       }
-      db.put(countKey, nextCount);
-      newChallenge.id = nextCount;
-      db.put(type + '-' + nextCount, JSON.stringify(newChallenge));
-      db.close();
-      event.sender.send(type + ' saved', newChallenge);
-      console.log("just saved " + type, newChallenge);
+      db.put(countKey, nextCount, function (err) {
+        if (err) { console.log("error saving count giving up", err); return }
+        newChallenge.id = nextCount;
+        db.put(type + '-' + nextCount, JSON.stringify(newChallenge), function (err) {
+          db.close();
+          if (err) { console.log("error saving actual", type, "giving up", err); return }
+          event.sender.send(type + ' saved', newChallenge);
+          console.log("just saved " + type, newChallenge);
+
+        });
+
+      });
     });
   }
 
@@ -183,7 +204,7 @@ function Repo(repoPath) {
 
           _.forEach(outputData, function (value, key) {
             if (self.allInputs.indexOf(key) !== -1) {
-              console.log("looks like a module depends on our output", key);
+              console.log("our output is an input for another module", key);
               self.dataSources[key].push(value);
             }
           });
@@ -191,9 +212,6 @@ function Repo(repoPath) {
         });
         return previous;
       }, {});
-
-
-
     });
   }
 }
@@ -229,6 +247,13 @@ if (shell.test('-d', libraryFolder)) {
 }
 
 const ipcMain = require('electron').ipcMain;
+ipcMain.on('get installed knowledgebases', function(event, arg) {
+  var knowledgebaseConfigurations = _.values(repo.installedModuleSettings);
+  console.log("getting installed knowledgebases", knowledgebaseConfigurations);
+  event.sender.send('installed knowledgebases', knowledgebaseConfigurations);
+});
+
+
 ipcMain.on('update challenge', function(event, updatedJson) {
   var data = JSON.parse(updatedJson);
   data.questions.forEach(function (question) {
