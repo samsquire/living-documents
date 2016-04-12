@@ -9,7 +9,7 @@ function ChallengeRepository() {
   self.save = function (json, callback) {
     $.ajax(
     {
-        url: config.source + "/challenges/" + row.id,
+        url: config.source + "/challenges/" + JSON.parse(json).id,
         type: "POST",
         contentType: 'application/json; charset=utf-8',
         dataType: "json",

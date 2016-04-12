@@ -24,6 +24,7 @@ function Challenge(data) {
   this.id = data.id;
   this.questions = ko.observableArray();
   this.path = data.path;
+  this.type = data.type;
 
   data.questions.map(function (question) {
     return new Question(question)

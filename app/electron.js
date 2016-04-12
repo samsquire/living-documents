@@ -74,10 +74,11 @@ function Repo(repoPath) {
           finishedParsingSettings("no installed dependencies", {}, {});
           return;
         }
-        self.installedModules = settings;
+        self.installedModules = settings.dependencies;
 
         var modules = settings.dependencies.reduce(function (previous, current) {
-          previous[current] = require(path.join(libraryPath(), current));
+					var thisModule = path.join(libraryPath(), current);
+          previous[current] = require(thisModule);
           return previous;
         }, {});
 
@@ -95,6 +96,22 @@ function Repo(repoPath) {
 
       });
     },
+
+		function installNpmDependencies(installed, modules, finishedInstalling) {
+
+			async.map(self.installedModules, function (item, callback) {
+				var thisModule = path.join(libraryPath(), item);
+				shell.cd(thisModule);
+				console.log("installing", thisModule);
+				shell.exec(['npm install'], function () {
+					console.log("installed", thisModule);
+					callback();
+				});
+			}, function () {
+				finishedInstalling(null, installed, modules);
+			});
+
+		},
     function createMappings(installed, modules, finishedMappings) {
 
         var mappings = _.map(installed, function (value, key) {
@@ -207,9 +224,21 @@ function Repo(repoPath) {
     //
     self.dependencies(function (wanted, availableModules) {
 
-      self.dataSources = _.reduce(wanted.inputs, function (previous, value, key) {
+      self.dataSources = _.reduce(wanted.inputs,
+                                  function (previous, value, key) {
+
         value.forEach(function (question) {
-          if (!(question in previous)) {
+					var hasTimeConfig = 'time' in self.installedModuleSettings[key];
+					if (hasTimeConfig) {
+						console.log(key, "has a temporal dependencies");
+					}
+					if (hasTimeConfig && question in self.installedModuleSettings[key].time) {
+						console.log(question, "is a defined temporal dependency");
+						var timeSettings = self.installedModuleSettings[key].time;
+						var interval = timeSettings[question];
+						previous[question] = Bacon.interval(interval, {});
+						console.log(question, "=", interval + "ms");
+          } else if (!(question in previous)) {
             console.log("created bus for", question);
             previous[question] = new Bacon.Bus();
             self.allInputs.push(question);
@@ -218,7 +247,7 @@ function Repo(repoPath) {
           }
         });
         return previous;
-      }, {});
+      }, self.dataSources);
 
       _.reduce(wanted.outputs, function (previous, value, key) {
         value.forEach(function (question) {
@@ -241,25 +270,34 @@ function Repo(repoPath) {
         var bus = Bacon.combineWith(dependencies,
                                     function () {
           var batch = Array.prototype.slice.call(arguments);
+					console.log(dependencies);
           var pairs = _.zip(value, batch)
           var changedObject = _.fromPairs(pairs);
           return changedObject;
         });
         previous[key] = bus;
         bus.onValue(function (item) {
-          var outputData = availableModules[key](item);
-          console.log(key, "OUTPUT", outputData);
+          availableModules[key](item,
+						function (err, outputData) {
+							if (err) {
+								console.log(key, "ERROR", err);
+								return;
+							}
 
-          _.forEach(outputData, function (value, key) {
-            if (self.allInputs.indexOf(key) !== -1) {
-              console.log("our output is an input for another module", key);
-              self.dataSources[key].push(value);
-            }
-          });
+							console.log(key, "OUTPUT", outputData);
 
-        });
-        return previous;
-      }, {});
+							_.forEach(outputData, function (value, key) {
+								if (self.allInputs.indexOf(key) !== -1) {
+									console.log("our output is an input for another module", key);
+									self.dataSources[key].push(value);
+								}
+							});
+					});
+
+			});
+			return previous;
+		}, {});
+
 
       finishedExecution();
 
@@ -318,20 +356,38 @@ ipcMain.on('get installed knowledgebases', function(event, arg) {
 
 ipcMain.on('update challenge', function(event, updatedJson) {
   var data = JSON.parse(updatedJson);
-  data.questions.forEach(function (question) {
-    var questionText = question.question;
-    var entry = repo.dataSources[questionText];
-    if (!entry) {
-      console.log("Nobody cares about " + question.question);
-    } else {
-      console.log("Submitting new value for " + question.question);
-      entry.push(question.answer);
-    }
-    repo.save("challenge", updatedJson, function (newChallenge) {
-      event.sender.send('challenge updated', data);
-    }, true);
+		if (data.type) {
+			var unanswered = _(data.questions)
+				.map('answer')
+				.filter(function (item) {
+					return item === "";
+				}).value();
+			if (unanswered.length === 0) {
+				console.log("fully answered");
+				var challengeBus = repo.dataSources[data.type];
+				if (challengeBus) {
+					challengeBus.push(data);
+				}
+			} else {
+				console.log("missing some questions");
+			}
+	} else {
+		data.questions.forEach(function (question) {
+			var questionText = question.question;
+			var entry = repo.dataSources[questionText];
+			console.log(data.type);
+			if (!entry) {
+				console.log("Nobody cares about " + question.question);
+			} else {
+				console.log("Submitting new value for " + question.question);
+				entry.push(question.answer);
+			}
+		});
+	}
 
-  });
+	repo.save("challenge", updatedJson, function (newChallenge) {
+		event.sender.send('challenge updated', data);
+	}, true);
 });
 ipcMain.on('get available repository knowledgebases', function(event, arg) {
 
@@ -415,11 +471,38 @@ ipcMain.on('open storage', function(event, arg) {
     shell.exec('npm init -y', function (code, stdout, stderr) {
     });
   }
-
   repo = new Repo(activeRepo);
-  repo.execute(function () {
-      event.sender.send('opened', activeRepo);
+
+  var stock = {
+				"type": "stock purchase",
+        "questions": [
+            {
+                "answer": "",
+                "question": "What did you buy?"
+            },
+            {
+                "answer": "",
+                "question": "At what price did you buy at?"
+            },
+            {
+                "answer": "",
+                "question": "When did you buy it?"
+            },
+            {
+                "answer": "",
+                "question": "How many units did you buy?"
+            }
+        ]
+    };
+
+  repo.save("challenge", JSON.stringify(stock), function (newChallenge) {
+		console.log("saved new challenge");	
+    repo.execute(function () {
+        event.sender.send('opened', activeRepo);
+    });
+
   });
+
 });
 
 

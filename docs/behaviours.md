@@ -35,18 +35,30 @@ I have a knowledgebase installed, such as UK Taxation.
 
 UK Taxation depends on various pieces of information such as my gross salary and my net pay.
 
-If your script is a NPM module, ensure that the module exposes a `runKnowledgebase(data)`.
+Create a dependency map data structure
 
-Return a JSON array of new data contributions
+Create event buses for each input
+Wire up the event buses so they connect to relevant modules
 
-Or when imported exposes a `extractChallenges` method and `executeFacts` method.
+
+Have a database of questions about purchased stocks
+
+for all stock activity
+	get pricing data for symbol
+	calculate value
+	calculate profit/loss amount and growth
+
 
 ```
-var ukTax = require('uk-tax);
-	ukTax.getChallenges();
-	ukTax.executeFacts(requestedKnowledge);
-```
+{
+	challenge: 'stock purchase'
+	questions: [
+	
+	]	
+}
+```	
 
-
+Now I want all stock purchases
+filter('stock purchase')
 
 
