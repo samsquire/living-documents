@@ -93,8 +93,11 @@
       <div class="eight wide column">
       <div class="ui top attached tabular menu">
         <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="insert" class="item">Insert fact</div>
+        <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="events" class="item">Events</div>
         <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="browse" class="item">Facts</div>
       </div>
+
+
       <div class="ui attached active tab segment">
 
               <form class="ui form" data-bind="submit: newRecord">
@@ -106,6 +109,31 @@
               </form>
 
       </div> <!-- insert segment -->
+
+      <!-- events  -->
+      <div data-bind="css: {active: mode() == 'events'}"
+class="ui attached tab segment">
+        <div class="ui card">
+        <div class="content">
+        <div class="header"></div>
+        </div>
+
+        <div class="content">
+        <h4 class="ui sub header">Update</h4>
+        <div class="ui small feed" data-bind="foreach: outputs">
+        <div class="event">
+        <div class="content">
+        <div class="summary">
+        <a data-bind="text: name"></a><span data-bind="text: value"></span>
+        </div>
+        </div>
+        </div>
+
+        </div>
+        </div>
+        </div>
+        </div> <!-- events -->
+
       <div data-bind="css: {active: mode() == 'browse'}" class="ui bottom attached tab segment">
          <div 
   class="ui feed"> 

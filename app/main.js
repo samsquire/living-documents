@@ -39,6 +39,13 @@ function appViewModel() {
   self.response = ko.observable("");
   self.dirty = ko.observable(false);
 
+  self.outputs = ko.observableArray();
+
+  knowledgeRepository.onFactChange(function (item) {
+    console.log("received change");
+    self.outputs.push(item); 
+  });
+
   self.facts = ko.observableArray();
   self.markDirty = function () {
     self.dirty(true);
@@ -187,6 +194,7 @@ function appViewModel() {
   self.tabUpdates = {
     browse: self.updateFacts.bind(self),
     insert: self.updateChallenges.bind(self),
+    events: function () {}
   };
 
 

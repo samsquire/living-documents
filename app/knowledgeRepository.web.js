@@ -7,6 +7,10 @@ function KnowledgeRepository() {
   var self = this;
   console.log("web knowledge repository");
 
+  self.onFactChange = function (callback) {
+
+  };
+
   self.fetchKnowledgebases = function (callback) { 
     $.ajax(
       {

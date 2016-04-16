@@ -10,10 +10,19 @@ function KnowledgeRepository() {
   ipcRenderer.on('available knowledgebases', function(event, arg) {
     self.onRepositories(event, arg);
   });
+  ipcRenderer.on('facts changed', function(event, arg) {
+    console.log("facts changed");
+    self.onReceiveFact(arg);
+  });
   self.onFetchedInstalledKnowledgebases = function () {}
   ipcRenderer.on('installed knowledgebases', function(event, arg) {
     self.onFetchedInstalledKnowledgebases(event, arg);
   });
+
+  self.onFactChange = function (callback) {
+    self.onReceiveFact = callback; 
+    ipcRenderer.send('get facts');
+  }
 
   self.updateRepository = function (callback) {
     console.log("updating repository");

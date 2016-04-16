@@ -17,6 +17,8 @@ var livingDocumentsHome = '.livingdocuments';
 var libraryFolder = "living-documents-library";
 var activeRepo = path.join(homeDir, livingDocumentsHome, "default");
 var repo = null;
+var factListener = null;
+
 
 function libraryPath() {
   return path.join(homeDir, livingDocumentsHome, libraryFolder);
@@ -76,11 +78,6 @@ function Repo(repoPath) {
         }
         self.installedModules = settings.dependencies;
 
-        var modules = settings.dependencies.reduce(function (previous, current) {
-					var thisModule = path.join(libraryPath(), current);
-          previous[current] = require(thisModule);
-          return previous;
-        }, {});
 
 
         async.reduce(settings.dependencies, {}, function (previous, item, itemParsed) {
@@ -91,15 +88,16 @@ function Repo(repoPath) {
           });
         }, function (err, results) {
           self.installedModuleSettings = results;
-          finishedParsingSettings(null, results, modules);
+          finishedParsingSettings(null, results);
         });
 
       });
     },
 
-		function installNpmDependencies(installed, modules, finishedInstalling) {
-
+		function installNpmDependencies(installed, finishedInstalling) {
+      console.log("installing module dependencies");
 			async.map(self.installedModules, function (item, callback) {
+        console.log("installing module dependencies", item);
 				var thisModule = path.join(libraryPath(), item);
 				shell.cd(thisModule);
 				console.log("installing", thisModule);
@@ -108,10 +106,19 @@ function Repo(repoPath) {
 					callback();
 				});
 			}, function () {
-				finishedInstalling(null, installed, modules);
+				finishedInstalling(null, installed);
 			});
 
 		},
+    function importModules(installed, callback) {
+        var modules = self.installedModules.reduce(function (previous, current) {
+					var thisModule = path.join(libraryPath(), current);
+          previous[current] = require(thisModule);
+          return previous;
+        }, {});
+
+        callback(null, installed, modules);
+    },
     function createMappings(installed, modules, finishedMappings) {
 
         var mappings = _.map(installed, function (value, key) {
@@ -300,6 +307,31 @@ function Repo(repoPath) {
 
 
       finishedExecution();
+      console.log(self.dependencyMappings);
+
+      var allOutputs = _.reduce(self.dependencyMappings.outputs, function (previous, value, key) {
+        return _.concat(previous, value);
+      }, []);
+
+
+      var outputSources = allOutputs.map(function (dependency) {
+        return self.dataSources[dependency];
+      });
+      outputSources = _.concat(outputSources, _.values(self.modules));
+
+      console.log("have been asked for facts");
+      Bacon.mergeAll(outputSources)
+        .onValue(function (item) {
+          console.log("output created", item);
+          var viewModel = _.reduce(item, function (previous, value, key) {
+            previous.push({
+              name: key,
+              value: value
+            });  
+            return previous;
+          }, []);
+          mainWindow.send('facts changed', viewModel);
+        });
 
     });
   }
@@ -336,6 +368,9 @@ if (shell.test('-d', libraryFolder)) {
 }
 
 const ipcMain = require('electron').ipcMain;
+ipcMain.on('get facts', function(event, arg) {
+  console.log("asked for facts");
+});
 ipcMain.on('get installed knowledgebases', function(event, arg) {
 
   repo.challenges(function (retrievedChallenges) {
@@ -495,12 +530,11 @@ ipcMain.on('open storage', function(event, arg) {
         ]
     };
 
-  repo.save("challenge", JSON.stringify(stock), function (newChallenge) {
-		console.log("saved new challenge");	
-    repo.execute(function () {
-        event.sender.send('opened', activeRepo);
+  repo.execute(function () {
+    repo.save("challenge", JSON.stringify(stock), function (newChallenge) {
+      event.sender.send('opened', activeRepo);
+      console.log("saved new challenge");	
     });
-
   });
 
 });
