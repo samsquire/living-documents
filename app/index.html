@@ -113,25 +113,26 @@
       <!-- events  -->
       <div data-bind="css: {active: mode() == 'events'}"
 class="ui attached tab segment">
+            <div class="ui small feed" data-bind="foreach: outputs">
         <div class="ui card">
-        <div class="content">
-        <div class="header"></div>
-        </div>
+          <div class="content">
+            <div class="header"></div>
+          </div>
 
-        <div class="content">
-        <h4 class="ui sub header">Update</h4>
-        <div class="ui small feed" data-bind="foreach: outputs">
-        <div class="event">
-        <div class="content">
-        <div class="summary">
-        <a data-bind="text: name"></a><span data-bind="text: value"></span>
-        </div>
-        </div>
-        </div>
-
-        </div>
-        </div>
-        </div>
+          <div class="content">
+            <h4 class="ui sub header">Update</h4>
+              <div class="event" >
+            <div class="ui small feed" data-bind="foreach: $data">
+              <div class="content">
+              <div class="summary">
+              <a data-bind="text: name"></a> <span data-bind="text: value"></span>
+              </div>
+              </div>
+              </div>
+            </div>
+            </div>
+            </div>
+          </div>
         </div> <!-- events -->
 
       <div data-bind="css: {active: mode() == 'browse'}" class="ui bottom attached tab segment">

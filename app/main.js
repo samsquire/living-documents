@@ -42,7 +42,7 @@ function appViewModel() {
   self.outputs = ko.observableArray();
 
   knowledgeRepository.onFactChange(function (item) {
-    console.log("received change");
+    console.log("received change", item);
     self.outputs.push(item); 
   });
 

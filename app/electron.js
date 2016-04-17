@@ -296,8 +296,10 @@ function Repo(repoPath) {
 							_.forEach(outputData, function (value, key) {
 								if (self.allInputs.indexOf(key) !== -1) {
 									console.log("our output is an input for another module", key);
-									self.dataSources[key].push(value);
 								}
+                if (key in self.dataSources) {
+                  self.dataSources[key].push(value);
+                }
 							});
 					});
 
@@ -322,14 +324,25 @@ function Repo(repoPath) {
       console.log("have been asked for facts");
       Bacon.mergeAll(outputSources)
         .onValue(function (item) {
-          console.log("output created", item);
-          var viewModel = _.reduce(item, function (previous, value, key) {
-            previous.push({
+
+        function createPair(value, key) {
+            return {
               name: key,
               value: value
-            });  
-            return previous;
-          }, []);
+            };  
+        }
+
+        console.log("output created", item);
+          function createPairDeep(value, key) {
+            if (typeof value === "object") {
+              return _.flatMapDeep(value, createPairDeep);
+            } else {
+              return createPair(value, key);
+            }
+          }
+
+          var viewModel = createPairDeep(item);
+          console.log(item, viewModel);
           mainWindow.send('facts changed', viewModel);
         });
 
