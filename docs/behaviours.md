@@ -10,14 +10,94 @@ Let's focus efforts on standalone mode first or web based?
  * Ask the user to pick a folder to save the user's data
  * Write a `settings.json`
  * Install some basic starting knowledgebases
- * Feed is displayed with questions
+ * There are two panes
+ * Left hand side is challenge feed
+ * Right hand side are events and facts that should be relevant to you
+ 
  * When a user enters an answer, the right pane side populates 
  	with useful information to do with the user's input,
  	that is, generated facts
+ * Facts should not appear immediately
  * What about verbs, to act on my answers?
  * What about search? I can search my existing facts but this
  is likely to be small, the available knowledge is likely to
  be much bigger
+
+
+Directory structure, each question answered will be put into a file on the file system, named after the challenge identifier. The challenge identifier is dash separated
+
+
+repository/
+    challenges/
+        stock-purchase
+        gross-annual-salary
+        height
+        weight
+        date-of-birth
+    config/
+        settings.json
+    knowledge/
+        stock-values
+        networth
+        about-my-height
+        
+
+No file extensions
+
+Challenges format:
+
+type: stock-purchase
+when:
+questions:
+    -   q: "What did you buy?"
+        a: ""
+    -   q: "What price did you buy at?"
+        a: ""
+
+A challenge can contain multiple questions.
+
+We initially load all challenge objects and save them to the backend. We index questions by their name and key.
+
+Knowledgebases depend on questions being answered to produce relevant output.
+
+Knowledgebase output is in the same format as the challenge:
+
+type: stock-values
+questions:
+    -   q: "What did you buy?"
+        a: "APH.L"
+     -  q: "How many units did you buy"
+        a: "2000"
+     -  q: "What is your current profit?"
+        a: "£150"
+     -  q: "What was your buying cost?"
+        a: £1100"
+     -  q: "What is the change percentage?"
+        a: "16%"
+
+Like a makefile decides which files to re-generate, the recency of the facts determines whether knowledge needs to be re-generated.
+
+Q&A is great for generating forms and keeping them modifiable in a human readable format.
+
+For computation and knowledge generation, the data can be converted into maps instead.
+
+{
+    "buyCost": "",
+    "profit": ""   
+}
+
+
+
+
+Magic endpoint
+
+# Online mode
+
+In online mode, a knowledgebase can depend on knowledge that is volatile such as that changes based on time. Changes to facts will update the knowledge in real time.
+
+# Offline mode
+
+In offline mode, the living system acts like a static site generator and can only give a snapshop for static knowledge generation. This would only store things like averages.
 
 Models:
 

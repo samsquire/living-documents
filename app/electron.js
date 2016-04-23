@@ -282,9 +282,19 @@ function Repo(repoPath) {
           var changedObject = _.fromPairs(pairs);
           return changedObject;
         });
+
+        var moduleCode = availableModules[key]
+
         previous[key] = bus;
+        if ('view' in moduleCode) {
+          var aggregation = bus.scan({}, moduleCode.view);    
+          aggregation.onValue(function (item) {
+            console.log(item); 
+          });
+        }
         bus.onValue(function (item) {
-          availableModules[key](item,
+          
+          moduleCode.run(item,
 						function (err, outputData) {
 							if (err) {
 								console.log(key, "ERROR", err);
@@ -304,6 +314,8 @@ function Repo(repoPath) {
 					});
 
 			});
+
+
 			return previous;
 		}, {});
 
