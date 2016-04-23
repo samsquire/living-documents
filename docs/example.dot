@@ -1,0 +1,12 @@
+digraph G {
+
+
+  buyQuantity -> stockPurchase;
+  buyPrice -> stockPurchase;
+  buySymbol -> stockPurchase;
+
+  stockPurchase -> stockValue;
+
+  stockValue -> position;
+
+}
