@@ -148,15 +148,17 @@ function Repo(repoPath) {
   self.query = function (type, callback) {
     var db = levelup(self.database, {createIfMissing: true});
     var items = [];
-    var query = db.createReadStream({lt: type + "-" + '\xff',
+    var query = db.createReadStream({lt: type + "-" + '\xffffffff',
                                     gte: type + "-"  + '\x00'   })
       .on('data', function (data) {
         var parsed = JSON.parse(data.value)
         items.push(parsed);
-    }).on('end', function () {
+    }).on('close', function () {
         console.log("finished challenge query");
         db.close();
         callback(items);
+    }).on('end', function () {
+      query.destroy();
     }).on('error', function (err) {
         console.log("error in query", err);
         db.close();
@@ -220,6 +222,8 @@ function Repo(repoPath) {
   }
 
   self.allInputs = [];
+  self.typedChallenges = {};
+  self.timedTypes = {};
 
   self.execute = function (finishedExecution) {
     // create a graph of dependencies
@@ -235,7 +239,7 @@ function Repo(repoPath) {
                                   function (previous, value, key) {
 
         value.forEach(function (question) {
-					var hasTimeConfig = 'time' in self.installedModuleSettings[key];
+          var hasTimeConfig = 'time' in self.installedModuleSettings[key];
 					if (hasTimeConfig) {
 						console.log(key, "has a temporal dependencies");
 					}
@@ -243,8 +247,9 @@ function Repo(repoPath) {
 						console.log(question, "is a defined temporal dependency");
 						var timeSettings = self.installedModuleSettings[key].time;
 						var interval = timeSettings[question];
-						previous[question] = Bacon.interval(interval, {});
+						previous[question] = new Bacon.Bus();
 						console.log(question, "=", interval + "ms");
+            self.timedTypes[question] = Bacon.interval(interval, {});
           } else if (!(question in previous)) {
             console.log("created bus for", question);
             previous[question] = new Bacon.Bus();
@@ -279,7 +284,7 @@ function Repo(repoPath) {
         var moduleCode = availableModules[key];
         if ('view' in moduleCode && !(key in views)) {
           console.log("found reduction function");
-          var viewBus = new Bacon.Bus()
+          var viewBus = new Bacon.Bus();
           views[key] = viewBus;
           var aggregation = viewBus.scan({}, moduleCode.view);
           aggregation.onValue(function (item) {
@@ -293,7 +298,6 @@ function Repo(repoPath) {
         var bus = Bacon.combineWith(dependencies,
                                     function () {
           var batch = Array.prototype.slice.call(arguments);
-					console.log(dependencies);
           var pairs = _.zip(value, batch)
           var changedObject = _.fromPairs(pairs);
           return changedObject;
@@ -332,7 +336,6 @@ function Repo(repoPath) {
 		}, {});
 
 
-      finishedExecution();
 
       var allOutputs = _.reduce(self.dependencyMappings.outputs, function (previous, value, key) {
         return _.concat(previous, value);
@@ -343,34 +346,66 @@ function Repo(repoPath) {
         return self.dataSources[dependency];
       });
       // outputSources = _.concat(outputSources, _.values(self.modules));
-      console.log(self.modules);
 
-      console.log("have been asked for facts");
-      Bacon.mergeAll(outputSources)
-        .onValue(function (item) {
+      self.challenges(function (challenges) {
+        var ids = _(challenges)
+          .filter(function (challenge) { return 'type' in challenge; })
+          .groupBy('type').value();
 
-        function createPair(value, key) {
-            return {
-              name: key,
-              value: value
-            };
-        }
 
-        console.log("output created", item);
-          function createPairDeep(value, key) {
-            if (typeof value === "object") {
-              return _.flatMapDeep(value, createPairDeep);
-            } else {
-              return createPair(value, key);
+        self.typedChallenges = _.reduce(ids,
+                            function (previous, instances, key) {
+          previous[key] = _(instances).reduce(
+              function (hash, item) {
+            var instanceBus = new Bacon.Bus(item)
+            hash[item.id] = instanceBus;
+            if (key in self.timedTypes) {
+              var interval = self.timedTypes[key];
+              var timedData = Bacon.combineWith(
+                instanceBus, interval,
+                function (instanceValue) {
+                  return instanceValue;
+                });
+              self.dataSources[key].plug(timedData);
             }
+            return hash;
+          }, {});
+
+          return previous;
+        }, self.typedChallenges);
+        console.log("typed challenges", self.typedChallenges);
+
+
+        finishedExecution();
+
+        Bacon.mergeAll(outputSources)
+          .onValue(function (item) {
+
+          function createPair(value, key) {
+              return {
+                name: key,
+                value: value
+              };
           }
 
-          var viewModel = createPairDeep(item);
-          console.log(item, viewModel);
-          if (mainWindow) {
-            mainWindow.send('facts changed', viewModel);
-          }
-        });
+          console.log("output created", item);
+            function createPairDeep(value, key) {
+              if (typeof value === "object") {
+                return _.flatMapDeep(value, createPairDeep);
+              } else {
+                return createPair(value, key);
+              }
+            }
+
+            var viewModel = createPairDeep(item);
+            if (mainWindow) {
+              mainWindow.send('facts changed', viewModel);
+            }
+          });
+
+      }); // create per challenge streams
+
+
 
     });
   }
@@ -408,7 +443,6 @@ if (shell.test('-d', libraryFolder)) {
 
 const ipcMain = require('electron').ipcMain;
 ipcMain.on('get facts', function(event, arg) {
-  console.log("asked for facts");
 });
 ipcMain.on('get installed knowledgebases', function(event, arg) {
 
@@ -438,9 +472,14 @@ ipcMain.on('update challenge', function(event, updatedJson) {
 				}).value();
 			if (unanswered.length === 0) {
 				console.log("fully answered");
-				var challengeBus = repo.dataSources[data.type];
-				if (challengeBus) {
-					challengeBus.push(data);
+				var challengeInstances = repo.typedChallenges[data.type];
+				if (challengeInstances) {
+          console.log("challenge instance type exists");
+          var challengeBus = challengeInstances[data.id];
+          if (challengeBus) {
+            console.log("saving to typed challenge bus");
+            challengeBus.push(data);
+          }
 				}
 			} else {
 				console.log("missing some questions");
@@ -449,7 +488,6 @@ ipcMain.on('update challenge', function(event, updatedJson) {
 		data.questions.forEach(function (question) {
 			var questionText = question.question;
 			var entry = repo.dataSources[questionText];
-			console.log(data.type);
 			if (!entry) {
 				console.log("Nobody cares about " + question.question);
 			} else {
