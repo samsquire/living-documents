@@ -270,7 +270,8 @@ function Repo(repoPath) {
 
 
       var views = {};
-      self.modules = _.reduce(wanted.inputs, function (previous, value, key) {
+      self.modules = _.reduce(wanted.inputs,
+                              function (previous, value, key) {
         var dependencies = value.map(function (item) {
           return self.dataSources[item];
         });
