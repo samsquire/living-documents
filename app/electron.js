@@ -268,10 +268,25 @@ function Repo(repoPath) {
         return previous;
       }, self.dataSources);
 
+
+      var views = {};
       self.modules = _.reduce(wanted.inputs, function (previous, value, key) {
         var dependencies = value.map(function (item) {
           return self.dataSources[item];
         });
+
+        var moduleCode = availableModules[key];
+        if ('view' in moduleCode && !(key in views)) {
+          console.log("found reduction function");
+          var viewBus = new Bacon.Bus()
+          views[key] = viewBus;
+          var aggregation = viewBus.scan({}, moduleCode.view);
+          aggregation.onValue(function (item) {
+            console.log("new aggregation");
+            console.log(item);
+          });
+        }
+
 
         // console.log("module dependencies found", dependencies);
         var bus = Bacon.combineWith(dependencies,
@@ -283,17 +298,9 @@ function Repo(repoPath) {
           return changedObject;
         });
 
-        var moduleCode = availableModules[key]
 
         previous[key] = bus;
-        if ('view' in moduleCode) {
-          var aggregation = bus.scan({}, moduleCode.view);    
-          aggregation.onValue(function (item) {
-            console.log(item); 
-          });
-        }
         bus.onValue(function (item) {
-          
           moduleCode.run(item,
 						function (err, outputData) {
 							if (err) {
@@ -303,14 +310,18 @@ function Repo(repoPath) {
 
 							console.log(key, "OUTPUT", outputData);
 
-              _.forEach(outputData, function (value, key) {
-                if (self.allInputs.indexOf(key) !== -1) {
-                  console.log("our output is an input for another module", key);
+              _.forEach(outputData, function (outputValue, outputKey) {
+                if (self.allInputs.indexOf(outputKey) !== -1) {
+                  console.log("our output is an input for another module", outputKey);
                 }
-                if (key in self.dataSources) {
-                  self.dataSources[key].push(value);
+                if (outputKey in self.dataSources) {
+                  self.dataSources[outputKey].push(outputValue);
                 }
+
               });
+              if (key in views) {
+                views[key].push(outputData);
+              }
 					});
 
 			});
