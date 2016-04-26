@@ -119,6 +119,23 @@ function Repo(repoPath) {
 
         callback(null, installed, modules);
     },
+
+    function createDisplayModes(installed, modules, callback) {
+
+      self.displayModes = _.reduce(self.installedModuleSettings,
+      function (previous, value, key) {
+        console.log(value);
+        if (value.displayModes) {
+          return _.assign(previous, value.displayModes);
+        }
+        return previous;
+      }, self.displayModes);
+
+      console.log("display modes", self.displayModes);
+
+      callback(null, installed, modules);
+    },
+
     function createMappings(installed, modules, finishedMappings) {
 
         var mappings = _.map(installed, function (value, key) {
@@ -224,6 +241,8 @@ function Repo(repoPath) {
   self.allInputs = [];
   self.typedChallenges = {};
   self.timedTypes = {};
+  self.aggregations = [];
+  self.displayModes = {};
 
   self.execute = function (finishedExecution) {
     // create a graph of dependencies
@@ -273,6 +292,7 @@ function Repo(repoPath) {
         return previous;
       }, self.dataSources);
 
+      
 
       var views = {};
       self.modules = _.reduce(wanted.inputs,
@@ -286,11 +306,17 @@ function Repo(repoPath) {
           console.log("found reduction function");
           var viewBus = new Bacon.Bus();
           views[key] = viewBus;
-          var aggregation = viewBus.scan({}, moduleCode.view);
+          var aggregationId = _.uniqueId();
+          var aggregation = viewBus.scan({}, moduleCode.view)
+            .map(function (item) {
+              item.aggregationId = aggregationId;
+              return item;
+          });
           aggregation.onValue(function (item) {
             console.log("new aggregation");
             console.log(item);
           });
+          self.aggregations.push(aggregation);
         }
 
 
@@ -346,6 +372,7 @@ function Repo(repoPath) {
         return self.dataSources[dependency];
       });
       // outputSources = _.concat(outputSources, _.values(self.modules));
+      outputSources = _.concat(outputSources, self.aggregations);
 
       self.challenges(function (challenges) {
         var ids = _(challenges)
@@ -387,17 +414,51 @@ function Repo(repoPath) {
                 value: value
               };
           }
+          function createTable(value) {
+                var keys = _.keys(value[0]);
+                return {
+									headers: keys,
+									data: _.map(value, function (row) {
+                    return _.reduce(keys, function (
+                    previous, key) {
+                      previous.push(row[key]);
+                      return previous;
+                    }, []);
+                  }),
+                  table: true
+                };
+          }
 
           console.log("output created", item);
             function createPairDeep(value, key) {
+
               if (typeof value === "object") {
                 return _.flatMapDeep(value, createPairDeep);
               } else {
                 return createPair(value, key);
               }
             }
-
-            var viewModel = createPairDeep(item);
+            var lookup = _.invertBy(self.displayModes,
+                                   function (mode) { return mode; })
+            console.log(lookup);
+            var availableKeys = _.keys(item);
+            console.log(availableKeys);
+            var tables = _.intersection(lookup.table,
+                                           availableKeys)
+            var viewModel;
+            if (tables.length > 0) {
+              console.log("found a table");
+              var field = tables[0];
+              var createdTableModel = createTable(item[field]);
+              createdTableModel.aggregationId = item.aggregationId;
+              viewModel = createdTableModel;
+            } else {
+              viewModel = {
+                questions: createPairDeep(item),
+                question: true
+              };
+            }
+            console.log(viewModel);
             if (mainWindow) {
               mainWindow.send('facts changed', viewModel);
             }
@@ -610,7 +671,7 @@ ipcMain.on('open storage', function(event, arg) {
   repo.execute(function () {
     repo.save("challenge", JSON.stringify(stock), function (newChallenge) {
       event.sender.send('opened', activeRepo);
-      console.log("saved new challenge");	
+      console.log("saved new challenge");
     });
   });
 

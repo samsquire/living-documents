@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var config = require('./config');
 var ko = require('./vendor/knockout-3.4.0.js');
 var knowledgeRepository = require('./knowledgeRepository');
@@ -40,11 +41,31 @@ function appViewModel() {
   self.dirty = ko.observable(false);
 
   self.outputs = ko.observableArray();
+  self.aggregations = {};
 
   knowledgeRepository.onFactChange(function (item) {
+    var id = item.aggregationId;
+    if (id) {
+      if (id in self.aggregations) {
+        console.log("removing existing aggregation");
+        self.outputs.remove(self.aggregations[id]);
+      }
+      self.aggregations[id] = item;
+    }
     console.log("received change", item);
-    self.outputs.push(item); 
+    self.outputs.unshift(item);
   });
+
+
+  self.isTable = function (output) {
+    console.log(output);
+    return output.table;
+  };
+  self.isQuestion = function (output) {
+    console.log(output);
+    return output.question;
+  };
+
 
   self.facts = ko.observableArray();
   self.markDirty = function () {
@@ -85,7 +106,6 @@ function appViewModel() {
         url: self.source + "/login",
         dataType: "json",
         success: function (data) {
-          
           if (!data.registered) {
             console.log("user not set up");
             pager.navigate('#/wizard');
@@ -132,7 +152,6 @@ function appViewModel() {
 
   self.fetchLanguageCode = function (newLanguage) {
     if (self.dirty()) { return; }
-    
     $.ajax(
       {
         type: "POST",
@@ -194,7 +213,8 @@ function appViewModel() {
   self.tabUpdates = {
     browse: self.updateFacts.bind(self),
     insert: self.updateChallenges.bind(self),
-    events: function () {}
+    events: function () {},
+    use: function () {}
   };
 
 
@@ -212,7 +232,7 @@ function appViewModel() {
     var newChallenge = ko.toJSON(item);
     challengeRepository.addChallenge(newChallenge, function (response) {
       console.log(response);
-      self.records.unshift(new Challenge(response));
+      self.records.push(new Challenge(response));
       self.updateChallenges();
     });
 

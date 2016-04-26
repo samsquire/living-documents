@@ -2,403 +2,428 @@
 
 <html lang="en">
 
-<head>
+  <head>
     <base href=""/>
     <meta charset="utf-8">
 
     <title>Living Documents</title>
-    <meta name="author" content="SitePoint">
+    <meta name="author" content="Living Document foundation">
 
     <link rel="stylesheet" href="styles.css">
 
 
-</head>
+  </head>
 
-<body>
+  <body>
 
     <div class="ui container" style="display: none;" data-bind="visible: true">
 
-<!-- device menu -->
-  <div class="ui flowing basic network popup">
-    <div class="ui three column relaxed divided grid">
-      <div class="column">
-        <h4 class="ui header">Devices</h4>
-        <div class="ui link list">
-          <a class="item">NJ550</a>
-          <a class="item">Z87</a>
+      <!-- device menu -->
+      <div class="ui flowing basic network popup">
+        <div class="ui three column relaxed divided grid">
+          <div class="column">
+            <h4 class="ui header">Devices</h4>
+            <div class="ui link list">
+              <a class="item">NJ550</a>
+              <a class="item">Z87</a>
+            </div>
+          </div>
+          <div class="column">
+            <h4 class="ui header">Resources</h4>
+            <div class="ui link list">
+              <a class="item">Anthropology</a>
+              <a class="item">Economics</a>
+              <a class="item">Media Studies</a>
+              <a class="item">Philosophy</a>
+            </div>
+          </div>
+          <div class="column">
+            <h4 class="ui header">Social Sciences</h4>
+            <div class="ui link list">
+              <a class="item">Food Studies</a>
+              <a class="item">Journalism</a>
+              <a class="item">Non Profit Management</a>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="column">
-        <h4 class="ui header">Resources</h4>
-        <div class="ui link list">
-          <a class="item">Anthropology</a>
-          <a class="item">Economics</a>
-          <a class="item">Media Studies</a>
-          <a class="item">Philosophy</a>
-        </div>
-      </div>
-      <div class="column">
-        <h4 class="ui header">Social Sciences</h4>
-        <div class="ui link list">
-          <a class="item">Food Studies</a>
-          <a class="item">Journalism</a>
-          <a class="item">Non Profit Management</a>
-        </div>
-      </div>
-    </div>
-</div> <!-- device menu -->
+      </div> <!-- device menu -->
 
 
 
       <div class="ui menu">
-          <div class="browse item">
-            <i class="laptop icon"></i>
-           <div class="floating ui red label">3</div>
-          </div>
+        <div class="browse item">
+          <i class="laptop icon"></i>
+          <div class="floating ui red label">3</div>
+        </div>
 
         <a data-bind="page-href: 'dashboard'" class="item">Data</a>
         <a data-bind="page-href: 'bases'" class="item">Knowledge</a>
         <a data-bind="page-href: 'network'" class="item">Network</a>
         <div class="right menu">
           <div class="ui item">
-          <div class="ui search transparent icon input ">
-            <input class="prompt" placeholder="Search content" type="text">
-            <i class="search link icon"></i>
-          <div class="results"></div>
+            <div class="ui search transparent icon input ">
+              <input class="prompt" placeholder="Search content" type="text">
+              <i class="search link icon"></i>
+              <div class="results"></div>
+            </div>
           </div>
-        </div>
           <a class="item">Settings</a>
         </div>
       </div>
 
-  <div data-bind="page: {id: 'wizard'}">
-    <h1>Welcome to living documents</h1>
-    <p>Where would you like to keep your data?</p>
-       <button class="ui primary button" data-storage-mode="home" data-bind="click: selectStorage">
+      <div data-bind="page: {id: 'wizard'}">
+        <h1>Welcome to living documents</h1>
+        <p>Where would you like to keep your data?</p>
+        <button class="ui primary button" data-storage-mode="home" data-bind="click: selectStorage">
           Use my home directory
         </button>
 
         <button class="ui button" data-storage-mode="custom" data-bind="click: selectStorage">
           Use a custom directory
         </button> 
-  </div>
+      </div>
 
 
-   <div data-bind="page: {id: 'dashboard'}"> 
+      <div data-bind="page: {id: 'dashboard'}"> 
         <h1 class="ui header huge">Open challenge feed</h1>
         <p>These are available information challenges for you. The more questions you answer, the more challenges will become available.</p>
 
-    <div class="ui grid">
-      <div class="row">
-      <div class="eight wide column">
-      <div class="ui top attached tabular menu">
-        <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="insert" class="item">Insert fact</div>
-        <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="events" class="item">Events</div>
-        <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="browse" class="item">Facts</div>
-      </div>
-
-
-      <div class="ui attached active tab segment">
-
-              <form class="ui form" data-bind="submit: newRecord">
-                <div class="field">
-                  <label>Question text</label>
-                  <input  data-bind="value: newQuestionText" name="question" placeholder="question text" type="text">
-                </div>
-                <button class="ui button" type="submit">Submit</button>
-              </form>
-
-      </div> <!-- insert segment -->
-
-      <!-- events  -->
-      <div data-bind="css: {active: mode() == 'events'}"
-class="ui attached tab segment">
-            <div class="ui small feed" data-bind="foreach: outputs">
-        <div class="ui card">
-          <div class="content">
-            <div class="header"></div>
-          </div>
-
-          <div class="content">
-            <h4 class="ui sub header">Update</h4>
-              <div class="event" >
-            <div class="ui small feed" data-bind="foreach: $data">
-              <div class="content">
-              <div class="summary">
-              <a data-bind="text: name"></a> <span data-bind="text: value"></span>
+        <div class="ui grid">
+          <div class="row">
+            <div class="eight wide column">
+              <div class="ui top attached tabular menu">
+                <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="insert" class="item">Insert fact</div>
+                <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="browse" class="item">Facts</div>
+                <div data-bind="click: switchTab, css: {active: activeIfMode($element) }" data-mode="use" class="item">Use fact</div>
               </div>
-              </div>
-              </div>
-            </div>
-            </div>
-            </div>
-          </div>
-        </div> <!-- events -->
 
-      <div data-bind="css: {active: mode() == 'browse'}" class="ui bottom attached tab segment">
-         <div 
-  class="ui feed"> 
-          <!-- ko foreach: {data: facts, as: 'fact'} -->
-           <div class="event">
-              <div class="label">
-              </div>
-              <div class="content">
-                <div class="summary">
-                  <a>Fact</a> created
-                  <div class="date">
-                    3 days ago
+
+              <div class="ui attached active tab segment" data-bind="css: {active: mode() == 'insert'}">
+
+                <form class="ui form" data-bind="submit: newRecord">
+                  <div class="field">
+                    <label>Question text</label>
+                    <input  data-bind="value: newQuestionText" name="question" placeholder="question text" type="text">
                   </div>
-                </div>
-                <div class="extra text">
-                  <div class="ui list">
-                   <!-- ko foreach: {data: dependencies, as: 'dependency'} -->
-            <a class="item">
-              <i class="right triangle icon"></i>
-              <div class="content">
-                <div class="header">
-                  <span data-bind="text: question"></span>
-</div>
-                <div class="description">
-                  <span data-bind="text: answer"></span>
-                </div>
-              </div>
-            </a>
-            <!-- /ko --> <!-- dependency list -->
-            <div class="item">
-              <i class="exchange icon"></i>
-              <div class="content">
-              <div class="header" data-bind="text: description"></div>
-                  <span data-bind="text: value"></span>
-              </div> <!-- answer content -->
-            </div>
+                  <button class="ui button" type="submit">Submit</button>
+                </form>
+
+              </div> <!-- insert segment -->
 
 
-                  </div> <!-- end of item list -->
-                </div>
-                <div class="meta">
-                  <a class="like">
-                    <i class="like icon"></i> 5 Likes
-                  </a>
-                </div>
-              </div>
-            </div> <!-- fact event -->
-        <!-- /ko -->
-
-
-
-
-        </div> <!-- fact feed !-->
-
-      </div> <!-- browse tab -->
-
-       <div data-bind="css: {active: mode() == 'insert'}"
-class="ui bottom attached tab segment" style="margin: 0px;"> 
-        <div class="ui feed">
-      <!-- ko foreach: {data: records, as: 'challenge'} -->
-
-           <div class="event">
-              <div class="label"></div>
-              <div class="content">
-                <div class="summary">
-                  <a class="user">
-                    <!-- <span data-bind="text: challenge.path"></span> -->
-                    Question bot
-                  </a> asks you
-                  <div class="date">
-                    1 Hour Ago
-                  </div>
-                </div>
-
-                <div class="extra text">
-                  <div class="ui form">
-                    <div class="fields">
-                                        <!-- ko foreach: {data: questions, as: 'item'} -->
-                      <div class="field">
-                        <label data-bind="text: question"></label>
-                        <input placeholder="answer" type="text" data-bind="value: answer, event: {blur: function () { $root.updateQuestion(challenge)}}">
-                  <a class="add right" data-bind="click: function () {
-$root.useQuestion(challenge, $index());}">
-                    <i class="add circle icon"></i> Require...
-                  </a>
-
+              <div data-bind="css: {active: mode() == 'browse'}"
+                class="ui bottom attached tab segment">
+                <div class="ui feed">
+                  <!-- ko foreach: {data: facts, as: 'fact'} -->
+                  <div class="event">
+                    <div class="label">
+                    </div>
+                    <div class="content">
+                      <div class="summary">
+                        <a>Fact</a> created
+                        <div class="date">
+                          3 days ago
+                        </div>
                       </div>
-                      
-                    <!-- /ko -->
-                    </div> <!-- fields -->
-                  </div> <!-- form -->
-                                                <span ></span>
-                </div>
+                      <div class="extra text">
+                        <div class="ui list">
+                          <!-- ko foreach: {data: dependencies, as: 'dependency'} -->
+                          <a class="item">
+                            <i class="right triangle icon"></i>
+                            <div class="content">
+                              <div class="header">
+                                <span data-bind="text: question"></span>
+                              </div>
+                              <div class="description">
+                                <span data-bind="text: answer"></span>
+                              </div>
+                            </div>
+                          </a>
+                          <!-- /ko --> <!-- dependency list -->
+                          <div class="item">
+                            <i class="exchange icon"></i>
+                            <div class="content">
+                              <div class="header" data-bind="text: description"></div>
+                              <span data-bind="text: value"></span>
+                            </div> <!-- answer content -->
+                          </div>
 
 
-                <div class="meta">
-                  <a class="like">
-                    <i class="like icon"></i> 4 Likes
-                  </a>
-                </div>
-              </div>
-            </div> <!-- event -->
-              <!-- /ko -->
-
-      </div>
-    </div> <!-- feed -->
-    </div> <!-- feed column -->
-  
-
-    <div class="eight wide column">
-      <div class="ui top attached tabular menu">
-        <div class="active item">Use fact</div>
-      </div>
-      <div class="ui bottom attached active tab segment">
-
-<div class="field">
-<button class="ui button" data-language="python" data-bind="css: {active: language() == 'python'}, click: switchLanguage">Python</button>
-<button class="ui button" data-language="ruby" data-bind="css : {active: language() == 'ruby'}, click: switchLanguage">Ruby</button>
-<button class="ui button" data-language="javascript" data-bind="css: {active: language() == 'javascript'}, click: $root.switchLanguage">Javascript</button>
-                </div>
-              <form class="ui form" data-bind="submit: newCode">
-
-                <!-- ko foreach: {data: inputs, as: 'item'} -->
-                  <!-- ko with: item.question -->
-                <p><a data-bind="text: question"></a>
-                <span data-bind="text: answer"></span></p>
+                        </div> <!-- end of item list -->
+                      </div>
+                      <div class="meta">
+                        <a class="like">
+                          <i class="like icon"></i> 5 Likes
+                        </a>
+                      </div>
+                    </div>
+                  </div> <!-- fact event -->
                   <!-- /ko -->
-                <!-- /ko -->
+
+
+
+
+                </div> <!-- fact feed !-->
+
+              </div> <!-- browse tab -->
+
+              <!-- use fact -->
+              <div data-bind="css: {active: mode() == 'use'}" class="ui bottom attached active tab segment">
 
                 <div class="field">
-                  <label>Code</label>
-                  <textarea data-bind="value: code, event: {change: markDirty}"></textarea>
+                  <button class="ui button" data-language="python" data-bind="css: {active: language() == 'python'}, click: switchLanguage">Python</button>
+                  <button class="ui button" data-language="ruby" data-bind="css : {active: language() == 'ruby'}, click: switchLanguage">Ruby</button>
+                  <button class="ui button" data-language="javascript" data-bind="css: {active: language() == 'javascript'}, click: $root.switchLanguage">Javascript</button>
                 </div>
-                <button class="ui button" type="submit">Submit</button>
-                <button data-bind="click: reset" class="ui button">Reset</button>
-              </form>
+                <form class="ui form" data-bind="submit: newCode">
 
-              
-        
-      </div> <!-- code segment -->
-      <div class="ui segment bottom attached">
-      <pre data-bind="text: response"></pre>
+                  <!-- ko foreach: {data: inputs, as: 'item'} -->
+                  <!-- ko with: item.question -->
+                  <p><a data-bind="text: question"></a>
+                  <span data-bind="text: answer"></span></p>
+                  <!-- /ko -->
+                  <!-- /ko -->
+
+                  <div class="field">
+                    <label>Code</label>
+                    <textarea data-bind="value: code, event: {change: markDirty}"></textarea>
+                  </div>
+                  <button class="ui button" type="submit">Submit</button>
+                  <button data-bind="click: reset" class="ui button">Reset</button>
+                </form>
+                <div class="">
+                  <pre data-bind="text: response"></pre>
+                </div> <!-- code segment -->
+              </div>
+
+              <!-- use fact -->
+
+              <div data-bind="css: {active: mode() == 'insert'}"
+                   class="ui bottom attached tab segment" style="margin: 0px;"> 
+                <div class="ui feed">
+                  <!-- ko foreach: {data: records, as: 'challenge'} -->
+
+                  <div class="event">
+                    <div class="label"></div>
+                    <div class="content">
+                      <div class="summary">
+                        <a class="user">
+                          <!-- <span data-bind="text: challenge.path"></span> -->
+                          Question bot
+                        </a> asks you
+                        <div class="date">
+                          1 Hour Ago
+                        </div>
+                      </div>
+
+                      <div class="extra text">
+                        <div class="ui form">
+                          <div class="fields">
+                            <!-- ko foreach: {data: questions, as: 'item'} -->
+                            <div class="field">
+                              <label data-bind="text: question"></label>
+                              <input placeholder="answer" type="text" data-bind="value: answer, event: {blur: function () { $root.updateQuestion(challenge)}}">
+                              <a class="add right" data-bind="click: function () {
+                              $root.useQuestion(challenge, $index());}">
+                                <i class="add circle icon"></i> Require...
+                              </a>
+                            </div>
+                            <!-- /ko -->
+
+                          </div> <!-- fields -->
+                        </div> <!-- form -->
+                        <span ></span>
+                      </div>
+
+
+                      <div class="meta">
+                        <a class="like">
+                          <i class="like icon"></i> 4 Likes
+                        </a>
+                      </div>
+                    </div>
+                  </div> <!-- event -->
+                  <!-- /ko -->
+
+                </div>
+              </div> <!-- feed -->
+            </div> <!-- feed column -->
+
+
+            <div class="eight wide column">
+              <div class="ui top attached tabular menu">
+                <div class="active item">Discoveries</div>
+              </div>
+              <!-- events  -->
+              <div
+                     class="ui attached segment">
+                <div class="ui small feed"
+                     data-bind="foreach: {data: outputs, as: 'output'}">
+
+                  <div class="event" data-bind="if: $root.isQuestion(output)">
+                    <div class="ui card">
+                      <div class="content">
+                        <div class="header"></div>
+                      </div>
+
+                      <div class="content">
+                        <h4 class="ui sub header">Update</h4>
+                        <div class="ui small feed"
+                             data-bind="foreach: {data: output.questions, as: 'question'}">
+                          <div class="content">
+                            <div class="summary">
+                              <a data-bind="text: question.name"></a> <span data-bind="text: question.value"></span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div data-bind="if: $root.isTable(output)">
+                    <table class="ui celled table">
+                      <thead>
+                        <tr data-bind="foreach: {data: output.headers, as: 'heading' }">
+                          <th data-bind="text: heading"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- ko foreach: {data: output.data, as: 'row'} -->
+                        <tr>
+                          <!-- ko foreach: {data: row, as: 'cellValue'} -->
+                          <td data-bind="text: cellValue"></td>
+                          <!-- /ko -->
+                        </tr>
+                        <!-- /ko -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div> <!-- events -->
+
+
+
+
+            </div>
+
+          </div> <!-- row -->
+        </div> <!-- grid -->
       </div>
-    </div>
 
-    </div> <!-- row -->
-  </div> <!-- grid -->
-  </div>
-
-    <div data-bind="page: {id: 'bases'}">
+      <div data-bind="page: {id: 'bases'}">
         <h1 class="ui header huge">Knowledge</h1>
 
-       <div class="ui top attached tabular menu">
-        <div class="item" data-bind="css: {active: $page.find$('installed')().isVisible }">
-          <a data-bind="page-href: 'installed'">Installed</a>
-        </div>
+        <div class="ui top attached tabular menu">
+          <div class="item" data-bind="css: {active: $page.find$('installed')().isVisible }">
+            <a data-bind="page-href: 'installed'">Installed</a>
+          </div>
 
-        <div class="item" data-bind="css: {active: $page.find$('available')().isVisible }">
+          <div class="item" data-bind="css: {active: $page.find$('available')().isVisible }">
             <a data-bind="page-href: 'available'">Available</a>
+          </div>
+
         </div>
 
-      </div>
-
-      <div data-bind="page: {id: 'installed', role: 'start'}" class="ui bottom attached tab segment">
+        <div data-bind="page: {id: 'installed', role: 'start'}" class="ui bottom attached tab segment">
 
 
-      <table class="ui celled table">
-      <thead>
-        <tr><th>Package name</th>
-        <th>Author</th>
-        <th>Completedness</th>
-      </tr></thead>
-      <tbody data-bind="foreach: knowledgebase">
+          <table class="ui celled table">
+            <thead>
+              <tr><th>Package name</th>
+                <th>Author</th>
+                <th>Completedness</th>
+              </tr></thead>
+              <tbody data-bind="foreach: knowledgebase">
 
-        <tr>
-          <td>
-            <div data-bind="text: name"></div>
-            <div data-bind="text: description"></div>
-          </td>
-          <td><a data-bind="text: author"></a></td>
-          <td>
+                <tr>
+                  <td>
+                    <div data-bind="text: name"></div>
+                    <div data-bind="text: description"></div>
+                  </td>
+                  <td><a data-bind="text: author"></a></td>
+                  <td>
 
-          <div class="ui progress">
-            <div class="bar" data-bind="style: {width: completedness + '%' }">
-              <div class="progress"></div>
+                    <div class="ui progress">
+                      <div class="bar" data-bind="style: {width: completedness + '%' }">
+                        <div class="progress"></div>
+                      </div>
+                    </div>
+                    <span data-bind="text: completedChallenges"></span>/<span data-bind="text: challenges"></span>
+                  </td>
+                </tr>
+
+              </tbody>
+              <tfoot>
+                <tr><th colspan="3">
+                    <div class="ui right floated pagination menu">
+                      <a class="icon item">
+                        <i class="left chevron icon"></i>
+                      </a>
+                      <a class="item">1</a>
+                      <a class="item">2</a>
+                      <a class="item">3</a>
+                      <a class="item">4</a>
+                      <a class="icon item">
+                        <i class="right chevron icon"></i>
+                      </a>
+                    </div>
+                  </th>
+                </tr></tfoot>
+          </table>
+
+
+        </div><!-- installed tab -->  
+
+        <div data-bind="page: {id: 'available', role: 'start'}" class="ui bottom attached tab segment">
+
+          <!-- cards -->
+
+          <div class="ui cards">
+
+            <!-- ko foreach: repository -->
+            <div class="card" data-bind="click: $root.install.bind($data)">
+              <div class="content">
+                <div class="header" data-bind="text: name"></div>
+                <div class="meta">
+                  <span data-bind="text: author"></span>
+                  <span data-bind="visible: installed">Installed</span>
+                </div>
+                <div class="description" data-bind="text: description"></div>
+                <div data-bind="visible: installing" class="ui indicating progress">
+                  <div class="bar"></div>
+                  <div class="label">Installing</div>
+                </div>
+
+              </div>
             </div>
+            <!-- /ko -->
+
           </div>
-            <span data-bind="text: completedChallenges"></span>/<span data-bind="text: challenges"></span>
-          </td>
-        </tr>
-
-      </tbody>
-      <tfoot>
-        <tr><th colspan="3">
-          <div class="ui right floated pagination menu">
-            <a class="icon item">
-              <i class="left chevron icon"></i>
-            </a>
-            <a class="item">1</a>
-            <a class="item">2</a>
-            <a class="item">3</a>
-            <a class="item">4</a>
-            <a class="icon item">
-              <i class="right chevron icon"></i>
-            </a>
-          </div>
-        </th>
-      </tr></tfoot>
-    </table>
 
 
-      </div><!-- installed tab -->  
 
-      <div data-bind="page: {id: 'available', role: 'start'}" class="ui bottom attached tab segment">
+          <!-- end of cards -->
 
-      <!-- cards -->
 
-<div class="ui cards">
 
-  <!-- ko foreach: repository -->
-  <div class="card" data-bind="click: $root.install.bind($data)">
-    <div class="content">
-      <div class="header" data-bind="text: name"></div>
-      <div class="meta">
-        <span data-bind="text: author"></span>
-        <span data-bind="visible: installed">Installed</span>
-      </div>
-      <div class="description" data-bind="text: description"></div>
-        <div data-bind="visible: installing" class="ui indicating progress">
-            <div class="bar"></div>
-              <div class="label">Installing</div>
+
+
+
+
         </div>
 
-    </div>
-  </div>
-  <!-- /ko -->
-
-</div>
+      </div> <!-- bases tab -->
 
 
-
-      <!-- end of cards -->
-
-
-
-
-
-      
+      <div data-bind="page: {id: 'network'}">
 
       </div>
 
-    </div> <!-- bases tab -->
+
+    </div> <!-- container !-->
+
+    <!-- <div id="editor"></div> -->
 
 
-    <div data-bind="page: {id: 'network'}">
-
-    </div>
-
-
-  </div> <!-- container !-->
-
-            <!-- <div id="editor"></div> -->
-
-
-</body>
+  </body>
 
 </html>
