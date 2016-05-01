@@ -7,12 +7,10 @@ const electron = require('electron');
 const async = require('async');
 const fs = require('fs');
 const shelljs = require('shelljs');
-// Module to control application life.
 const app = electron.app;
-// Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
 const levelup = require('levelup');
-
+const yaml = require('yamljs');
 var livingDocumentsHome = '.livingdocuments';
 var libraryFolder = "living-documents-library";
 var activeRepo = path.join(homeDir, livingDocumentsHome, "default");
@@ -153,7 +151,7 @@ function Repo(repoPath) {
 
     }], function (err, deps, modules) {
         if (err) {
-          console.log("couldnt get dependencies"); 
+          console.log("couldnt get dependencies");
           callback({}, {});
           return;
         }
@@ -162,7 +160,29 @@ function Repo(repoPath) {
     });
   };
 
-  self.query = function (type, callback) {
+  self.query = function (type, allChallengesParsed) {
+    var folder = type + "s";
+
+    fs.readdir(path.join(activeRepo, folder), function (error, files) {
+      if (files.length === 0) {
+        console.log("no challenges found");
+        allChallengesParsed([]);
+      }
+      async.map(files, function (filename, challengeParsed) {
+        var fullpath = path.join(activeRepo, folder, filename);
+        fs.readFile(fullpath, function (error, data) {
+          var parsed = yaml.parse(data.toString());
+          challengeParsed(null, parsed);
+        });
+      },
+      function (error, parsedChallenges) {
+        console.log("finished parsing all challenges");
+        allChallengesParsed(parsedChallenges);
+      });
+    });
+  }
+
+  self.levelQuery = function (type, callback) {
     var db = levelup(self.database, {createIfMissing: true});
     var items = [];
     var query = db.createReadStream({lt: type + "-" + '\xffffffff',
@@ -183,6 +203,42 @@ function Repo(repoPath) {
   }
 
   self.save = function (type, data, saveFinished, update) {
+    var folder = type + "s";
+      console.log("saving new", type);
+      async.waterfall([
+      function getCount(callback) {
+
+        if (!update) {
+          var files = fs.readdirSync(path.join(activeRepo, folder));
+          callback(null, String(files.length));
+        } else {
+          callback(null, data.id);
+        }
+
+      },
+
+      function writeFile(count, callback) {
+        var filename = path.join(activeRepo, folder, count);
+        console.log("about to save", count, filename, data);
+        data.id = count;
+        var serialized = yaml.stringify(data, 4);
+        fs.writeFile(filename, serialized, function (error) {
+          callback(null, data);
+        });
+
+      }
+      ], function (errors, result) {
+        if (errors) {
+          console.log("failed to save", errors); 
+          return;
+        }
+        saveFinished(result);
+      });
+
+
+  };
+
+  self.levelSave = function (type, data, saveFinished, update) {
     var db = levelup(self.database);
     var newChallenge = JSON.parse(data);
 
@@ -558,7 +614,7 @@ ipcMain.on('update challenge', function(event, updatedJson) {
 		});
 	}
 
-	repo.save("challenge", updatedJson, function (newChallenge) {
+	repo.save("challenge", JSON.parse(updatedJson), function (newChallenge) {
 		event.sender.send('challenge updated', data);
 	}, true);
 });
@@ -602,7 +658,7 @@ function currentSettingsPath(source) {
 }
 
 ipcMain.on('save challenge', function(event, challengeRequest) {
-  repo.save("challenge", challengeRequest, function (newChallenge) {
+  repo.save("challenge", JSON.parse(challengeRequest), function (newChallenge) {
     event.sender.send('challenge saved', newChallenge);
     console.log("just saved challenge", newChallenge);
   });
@@ -611,7 +667,7 @@ ipcMain.on('save challenge', function(event, challengeRequest) {
 ipcMain.on('open storage', function(event, arg) {
   if (arg === "custom") {
     const dialog = require('electron').dialog;
-    var selection = dialog.showOpenDialog({ properties: [ 'openFile', 'openDirectory']});  
+    var selection = dialog.showOpenDialog({ properties: [ 'openFile', 'openDirectory']});
     activeRepo = selection[0];
   }
 
@@ -638,7 +694,6 @@ ipcMain.on('open storage', function(event, arg) {
     console.log("settings file exists");
   }
 
-  
   var challengesDir = path.join(activeRepo, "challenges");
   if (!shell.test('-d', challengesDir)) {
     console.log("created challenges directory");
@@ -682,7 +737,7 @@ ipcMain.on('open storage', function(event, arg) {
     };
 
   repo.execute(function () {
-    repo.save("challenge", JSON.stringify(stock), function (newChallenge) {
+    repo.save("challenge", stock, function (newChallenge) {
       event.sender.send('opened', activeRepo);
       console.log("saved new challenge");
     });
@@ -697,18 +752,78 @@ ipcMain.on('get challenges', function(event, arg) {
   });
 });
 
+function challengeExists(metadata, callback) {
+
+  repo.challenges(function (challenges) {
+    var found = _.find(_.flatMap(challenges, function (item) { return item.questions; }),
+                       function (question) {
+      return question.question === metadata.question;
+    });
+    callback(found != undefined);
+  });
+
+}
+
 ipcMain.on('install knowledgebase', function(event, knowledgebaseName) {
   var knowledgebasePath = path.join(libraryPath(), knowledgebaseName);
   var knowledgebaseSettingsPath = path.join(knowledgebasePath, "livingdocument.json");
   console.log("installing knowledge base", knowledgebaseName, knowledgebaseSettingsPath);
 
-  fs.readFile(knowledgebaseSettingsPath, function (err, data) {
-    var metadata = JSON.parse(data);
+  async.waterfall([
+    function readMetadata(callback) {
 
-    if (err) {
-      console.log("failed to update knowledgebase"); 
-      return;
-    }
+    fs.readFile(knowledgebaseSettingsPath, function (err, data) {
+      var metadata = JSON.parse(data);
+      console.log(metadata.dependencies);
+      callback(null, metadata);
+    })
+  }
+    ,
+  function installChallenges(metadata, createdChallenges) {
+
+      async.reduce(_.values(metadata.dependencies),
+            [],
+            function (previous, dependency, callback) {
+                  challengeExists(dependency, function (exists) {
+
+                    console.log(dependency);
+
+                    if (!exists) {
+                      var newChallenge = {
+                        "questions": [
+                            {
+                            "question": dependency.question,
+                            "answer": ""
+                          }
+                        ]
+                      };
+
+                      console.log("can create", dependency.question);
+                      callback(null, _.concat(previous, [newChallenge]));
+                    } else {
+                      console.log("challenge already exists", dependency.question);
+                      callback(null, previous);
+                    }
+                  });
+          }, function (errors, newChallenges) {
+
+            console.log(newChallenges);
+
+            async.eachSeries(newChallenges, function (item, created) {
+              console.log("saving ", item);
+              repo.save("challenge", item, function () {
+                created(null);
+              });
+            }, function () {
+              createdChallenges(null, metadata);
+            });
+
+
+          });
+      }
+  ,
+
+  function installPackages(metadata, callback) {
     var packageName = knowledgebaseName;
 
 //    if (!packageName) {
@@ -727,20 +842,35 @@ ipcMain.on('install knowledgebase', function(event, knowledgebaseName) {
       }
 
       fs.writeFile('settings.json', JSON.stringify(settings, null, 4), function (err) {
-        if (!err) {
-          repo.execute(function() {
-            event.sender.send('installed', knowledgebaseName);
-          });
-        }
+        callback(err, metadata, knowledgebaseName);
       });
     });
+  },
+
+  function execute(metadata, knowledgebaseName, callback) {
+      repo.execute(function() {
+        callback(null, metadata, knowledgebaseName);
+      });
+  }
+
+  ], function (err, metadata, knowledgebaseName) {
+
+    if (err) {
+      console.log("failed to update knowledgebase");
+      return;
+    }
+    event.sender.send('installed', knowledgebaseName);
+  });
+
+
+
+
 
 //     console.log("installing in", repo.path)
 //     shell.exec('npm install --save ' + packageName, function (code, stdout, stderr) {
 //       event.sender.send('installed', arg);
 //     });
 
-  });
 
 
 });
