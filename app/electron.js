@@ -638,6 +638,19 @@ ipcMain.on('open storage', function(event, arg) {
     console.log("settings file exists");
   }
 
+  
+  var challengesDir = path.join(activeRepo, "challenges");
+  if (!shell.test('-d', challengesDir)) {
+    console.log("created challenges directory");
+    shell.mkdir(challengesDir);  
+  }
+
+  var knowledgeDir = path.join(activeRepo, "knowledge");
+  if (!shell.test('-d', knowledgeDir)) {
+    console.log("created knowledge directory");
+    shell.mkdir(knowledgeDir);  
+  }
+
   var packageJson = path.join(activeRepo, "package.json");
   if (!shell.test('-f', packageJson)) {
     shell.cd(activeRepo);
